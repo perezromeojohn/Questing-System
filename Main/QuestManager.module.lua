@@ -92,23 +92,6 @@ function questManager:GetQuestDataForPlayer(playerId, questId)
 	return nil
 end
 
--- Function to update the quest GUI with the current quest information
-function questManager:UpdateQuestGUI(questId)
-	local questData = questManager:GetQuestDataForPlayer(game.Players.LocalPlayer.PlayerId, questId)
-	if questData ~= nil then
-		local questGUI = game.QuestGUI
-
-		questGUI.QuestName.Text = questData.questObjective
-		questGUI.QuestProgress.Text = questData.progress .. "/" .. questData.questObjective
-
-		if questData.completed then
-			questGUI.QuestStatus.Text = "Completed"
-		else
-			questGUI.QuestStatus.Text = "In Progress"
-		end
-	end
-end
-
 -- Function to generate a unique identifier for a quest
 function GenerateUniqueId()
 	local randomId = HttpService:GenerateGUID(false)
@@ -120,6 +103,7 @@ function questManager:UpdateKillMobsQuestProgress(playerId, questId, mobKills)
 	for _, questData in ipairs(playerQuests[playerId]) do
 		if questData.questId == questId and questData.questType == QUEST_TYPES.KILL_MOBS then
 			questData.progress = questData.progress + mobKills
+			questManager:UpdatePlayerLeaderStats(playerId, questId)
 			break
 		end
 	end
@@ -131,6 +115,32 @@ function questManager:UpdateGetCoinsQuestProgress(playerId, questId, coinsCollec
 		if questData.questId == questId and questData.questType == QUEST_TYPES.GET_COINS then
 			questData.progress = questData.progress + coinsCollected
 			break
+		end
+	end
+end
+
+function questManager:UpdatePlayerLeaderStats(playerId, questId)
+	local questData = questManager:GetQuestDataForPlayer(playerId, questId)
+	if questData ~= nil then
+		local player = game.Players:GetPlayerByUserId(playerId)
+		local folder = player.Quests:WaitForChild("playerId")
+
+		local questObjective = folder:WaitForChild(questId):WaitForChild("questObjective")
+		local questProgress = folder:WaitForChild(questId):WaitForChild("progress")
+		local questStatus = folder:WaitForChild(questId):WaitForChild("completed")
+
+		questObjective.Value = questData.questObjective
+		questProgress.Value = questData.progress
+		questStatus.Value = questData.completed
+
+		local questChecker = questManager:IsQuestCompletedForPlayer(playerId, questId)
+		if questChecker == true then
+			-- delete the folder:waitForChild questId of it
+			local questIdFolder = folder:WaitForChild(questId)
+			questIdFolder:Destroy()
+			-- reward here
+
+			warn("Quest completed!")
 		end
 	end
 end
