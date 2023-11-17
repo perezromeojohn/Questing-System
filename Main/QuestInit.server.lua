@@ -5,16 +5,14 @@ local HTTP = game:GetService("HttpService")
 
 local QM = require(script.QuestManager)
 local QD = require(script.QuestData)
+local QT = require(script.QuestTypes)
 
 local questData = QD.new()
 questData.questObjective = 15 
 questData.progress = 16
 questData.completed = false
 
-local QUEST_TYPES = {
-	KILL_MOBS = "KILL_MOBS",
-	GET_COINS = "GET_COINS"
-}
+local QUEST_TYPES = QT
 
 -- server
 --local dataStore = DSV:GetDataStore("DSVQuests") -- datastore named
