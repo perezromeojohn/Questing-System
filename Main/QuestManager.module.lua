@@ -6,6 +6,9 @@ local HttpService = game:GetService("HttpService")
 local RS = game:GetService("ReplicatedStorage")
 local TS = game:GetService("TweenService")
 
+-- GUI STUFF
+local questHolder = RS.QuestSystem.GUI.QuestHolder
+
 -- Module and Stuff
 local QuestData = require(script.Parent.QuestData)
 local QuestTypes = require(script.Parent.QuestTypes)
@@ -64,7 +67,16 @@ function questManager:CreateQuestForPlayer(playerId, questName, questCriteria, q
 		val.Name, val.Value = k, v
 	end
 
+	-- get player from playerId then get the player's playerGui, then clone the questHolder to it directly, I just wanna check if it works
+	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.ActiveFrame
+	local questHolderClone = questHolder:Clone()
+	questHolderClone.Parent = playerGui
+
 	return questData.questId
+end
+
+function questManager:CreateGUI(playerId, questType)
+
 end
 
 -- Function to update the progress of a player's quest
