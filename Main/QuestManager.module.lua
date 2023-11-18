@@ -13,6 +13,9 @@ local questHolder = RS.QuestSystem.GUI.QuestHolder
 local QuestData = require(script.Parent.QuestData)
 local QuestTypes = require(script.Parent.QuestTypes)
 
+-- remotes and stuff
+local claimQuest = RS.QuestSystem.Remotes.ClaimQuest
+
 local QUEST_TYPES = QuestTypes
 
 -- Lists
@@ -101,7 +104,7 @@ function questManager:UpdateQuestGUI(playerId, questId, progress, questObjective
 
 	questObjectiveLabel.Text = tostring(progress) .. " / " .. tostring(questObjective)
 	local progressRatio = progress / questObjective
-    questObjectiveBar.Size = UDim2.new(progressRatio, 0, 1, 0)
+	questObjectiveBar.Size = UDim2.new(progressRatio, 0, 1, 0)
 	if questStatus == true then
 		questClaimFrame.Visible = true
 	end
@@ -159,18 +162,45 @@ function questManager:UpdatePlayerLeaderStats(playerId, questId)
 		questProgress.Value = questData.progress
 		questStatus.Value = questData.completed
 
-		
+
 		local questChecker = questManager:IsQuestCompletedForPlayer(playerId, questId)
 		questManager:UpdateQuestGUI(playerId, questId, questData.progress, questData.questObjective, questChecker)
 		if questChecker == true then
-			-- delete the folder:waitForChild questId of it
-			local questIdFolder = folder:WaitForChild(questId)
-			-- set questClaimed to true
 			questClaimed.Value, questData.claimed = true, true
 
 			warn("Quest completed!")
 		end
 	end
+end
+
+function questManager:DeletePlayerLeaderstats(playerId, questId)
+    local player = game.Players:GetPlayerByUserId(playerId)
+    local folder = player.Quests:WaitForChild("playerId")
+    local questIdFolder = folder:FindFirstChild(questId)
+    
+    if questIdFolder then
+        questIdFolder:Destroy()
+        questManager:DeleteQuestGUI(player, questId)
+        
+        for i, v in ipairs(playerQuests[playerId]) do
+            if v.questId == questId then
+                table.remove(playerQuests[playerId], i)
+                break
+            end
+        end
+        
+        -- print the new table
+        print(playerQuests[playerId])
+    else
+		warn("Quest not found!")
+	end
+end
+
+
+function questManager:DeleteQuestGUI(player, questId)
+	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.ActiveFrame
+	local questHolderClone = playerGui:WaitForChild(questId)
+	questHolderClone:Destroy()
 end
 
 -- Function to generate a unique identifier for a quest
@@ -201,5 +231,10 @@ function questManager:UpdateGetCoinsQuestProgress(playerId, questId, coinsCollec
 		end
 	end
 end
+
+-- server events
+claimQuest.OnServerEvent:Connect(function(player, questId)
+	questManager:DeletePlayerLeaderstats(player.UserId, questId)
+end)
 
 return questManager
