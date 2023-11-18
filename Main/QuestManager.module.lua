@@ -67,16 +67,44 @@ function questManager:CreateQuestForPlayer(playerId, questName, questCriteria, q
 		val.Name, val.Value = k, v
 	end
 
-	-- get player from playerId then get the player's playerGui, then clone the questHolder to it directly, I just wanna check if it works
-	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.ActiveFrame
-	local questHolderClone = questHolder:Clone()
-	questHolderClone.Parent = playerGui
+	questManager:CreateGUI(playerId, questData.questId, questName, questObjective)
 
 	return questData.questId
 end
 
-function questManager:CreateGUI(playerId, questType)
+-- Function to create the GUI for a player's quest
+function questManager:CreateGUI(playerId, questId, questName, questObjective)
+	local player = game.Players:GetPlayerByUserId(playerId)
+	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.ActiveFrame
+	local questHolderClone = questHolder:Clone()
+	questHolderClone.Parent = playerGui
+	questHolderClone.Name = questId
 
+	local questNameLabel = questHolderClone.QuestName
+	local questObjectiveLabel = questHolderClone.ProgressBarFrame.ProgressBG.ProgressValue
+	local questObjectiveBar = questHolderClone.ProgressBarFrame.ProgressBG.ProgressFG
+
+	questNameLabel.Text = questName
+	questObjectiveLabel.Text = "0 / " .. tostring(questObjective)
+	questObjectiveBar.Size = UDim2.new(0, 0, 1, 0)
+end
+
+-- Function to update the GUI for a player's quest
+function questManager:UpdateQuestGUI(playerId, questId, progress, questObjective, questStatus)
+	local player = game.Players:GetPlayerByUserId(playerId)
+	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.ActiveFrame
+	local questHolderClone = playerGui:WaitForChild(questId)
+
+	local questObjectiveLabel = questHolderClone.ProgressBarFrame.ProgressBG.ProgressValue
+	local questObjectiveBar = questHolderClone.ProgressBarFrame.ProgressBG.ProgressFG
+	local questClaimFrame = questHolderClone.ProgressBarFrame.ClaimFrame
+
+	questObjectiveLabel.Text = tostring(progress) .. " / " .. tostring(questObjective)
+	local progressRatio = progress / questObjective
+    questObjectiveBar.Size = UDim2.new(progressRatio, 0, 1, 0)
+	if questStatus == true then
+		questClaimFrame.Visible = true
+	end
 end
 
 -- Function to update the progress of a player's quest
@@ -89,6 +117,7 @@ function questManager:UpdateQuestProgressForPlayer(playerId, questId, progress)
 	end
 end
 
+-- Function to get a player's quest
 function questManager:GetQuestForPlayer(playerId)
 	return playerQuests[playerId]
 end
@@ -130,7 +159,9 @@ function questManager:UpdatePlayerLeaderStats(playerId, questId)
 		questProgress.Value = questData.progress
 		questStatus.Value = questData.completed
 
+		
 		local questChecker = questManager:IsQuestCompletedForPlayer(playerId, questId)
+		questManager:UpdateQuestGUI(playerId, questId, questData.progress, questData.questObjective, questChecker)
 		if questChecker == true then
 			-- delete the folder:waitForChild questId of it
 			local questIdFolder = folder:WaitForChild(questId)
@@ -152,7 +183,6 @@ end
 function questManager:UpdateKillMobsQuestProgress(playerId, questId, mobKills, questType)
 	for _, questData in ipairs(playerQuests[playerId]) do
 		if questData.questId == questId and questData.questType == questType then
-			print(questData.claimed)
 			if questData.claimed == false then
 				questData.progress = questData.progress + mobKills
 				questManager:UpdatePlayerLeaderStats(playerId, questId)

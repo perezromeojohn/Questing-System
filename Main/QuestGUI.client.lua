@@ -16,6 +16,8 @@ local blur = game:GetService("Lighting").InventoryBlur
 local questBtn = QuestSystemScreen.MainButton
 local closeBtn = QuestSystemScreen.MainFrame.CloseButton
 
+local claimButtons = {}
+
 -- button actions
 questBtn.MouseButton1Click:Connect(function()
     MainScreen.Visible = not MainScreen.Visible
@@ -27,7 +29,21 @@ closeBtn.MouseButton1Click:Connect(function()
     blur.Enabled = not blur.Enabled
 end)
 
--- client side functions to serverside
+for _, button in ipairs(MainScreen:GetDescendants()) do
+    if button:IsA("ImageButton") and button.Name == "ClaimButton" then
+        table.insert(claimButtons, button)
+        print(button.Name)
+    end
+end
 
+-- get all the claimButtons and get the questId from the parent. ClaimButton.Parent.Parent.Parent
+for _, button in ipairs(claimButtons) do
+    button.MouseButton1Click:Connect(function()
+        local questId = button.Parent.Parent.Parent.Name
+        button.Parent.Parent.Parent:Destroy()
+    end)
+end
+
+-- client side functions to serverside
 
 -- returning lists from serverside to clientside
