@@ -67,6 +67,8 @@ function questManager:LoadPlayerQuests(playerId)
     end
 end
 
+-- function to remove a completed quest in the da
+
 -- Function to create a new quest for a player
 function questManager:CreateQuestForPlayer(playerId, questName, questCriteria, questType, questObjective)
 	local questData = QuestData.new()
