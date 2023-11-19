@@ -155,10 +155,9 @@ end
 
 -- Function to get the quest data for a player's quest
 function questManager:GetQuestDataForPlayer(playerId, questId)
-	for _, questData in ipairs(playerQuests[playerId]) do
-		if questData.questId == questId then
-			return questData
-		end
+	local questData = playerQuestIndex[playerId][questId]
+	if questData.questId == questId then
+		return questData
 	end
 
 	return nil
@@ -199,15 +198,25 @@ function questManager:DeletePlayerLeaderstats(playerId, questId)
         questIdFolder:Destroy()
         questManager:DeleteQuestGUI(player, questId)
         
+        local questIndex
         for i, v in ipairs(playerQuests[playerId]) do
             if v.questId == questId then
-                table.remove(playerQuests[playerId], i)
+                questIndex = i
                 break
             end
         end
         
+        if questIndex then
+            table.remove(playerQuests[playerId], questIndex)
+        end
+        
+        -- Remove quest from playerQuestIndex
+        if playerQuestIndex[playerId] and playerQuestIndex[playerId][questId] then
+            playerQuestIndex[playerId][questId] = nil
+        end
+        
         -- print the new table
-        print(playerQuests[playerId])
+        -- print(playerQuests[playerId])
     else
 		warn("Quest not found!")
 	end
