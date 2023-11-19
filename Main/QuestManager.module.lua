@@ -24,6 +24,49 @@ local questManager = {} -- module
 local playerQuests = {}
 local playerQuestIndex = {}
 
+-- Save function
+function questManager:SavePlayerQuests(playerId)
+    local playerData = playerQuests[playerId]
+    if playerData then
+        local success, errorMessage = pcall(function()
+            questDataStore:SetAsync(playerId, playerData)
+        end)
+        if not success then
+            warn("Error saving player data: " .. errorMessage)
+        end
+    else
+        warn("No data found for playerId: " .. tostring(playerId))
+    end
+end
+
+-- Load function
+function questManager:LoadPlayerQuests(playerId)
+    local success, playerData = pcall(function()
+        return questDataStore:GetAsync(playerId)
+    end)
+    if success and playerData then
+        playerQuests[playerId] = playerData
+        for _, questData in pairs(playerData) do
+			questManager:CreateGUI(playerId, questData.questId, questData.questName, questData.questObjective)
+			if not playerQuestIndex[playerId] then
+				playerQuestIndex[playerId] = {}
+			end
+			playerQuestIndex[playerId][questData.questId] = questData
+			local player = game.Players:GetPlayerByUserId(playerId)
+			local folder = player.Quests:WaitForChild("playerId")
+			local questId = Instance.new("StringValue", folder)
+			questId.Name, questId.Value = questData.questId, questData.questId
+			for k, v in pairs({completed = questData.completed, progress = questData.progress, questObjective = questData.questObjective, questType = questData.questType, claimed = questData.claimed, questName = questData.questName, questCriteria = questData.questCriteria}) do
+				local val = Instance.new(typeof(v) == "boolean" and "BoolValue" or typeof(v) == "number" and "IntValue" or "StringValue", questId)
+				val.Name, val.Value = k, v
+			end
+			questManager:UpdatePlayerLeaderStats(playerId, questData.questId)
+        end
+    else
+        warn("Error loading player data for playerId: " .. tostring(playerId))
+    end
+end
+
 -- Function to create a new quest for a player
 function questManager:CreateQuestForPlayer(playerId, questName, questCriteria, questType, questObjective)
 	local questData = QuestData.new()
@@ -78,6 +121,9 @@ function questManager:CreateQuestForPlayer(playerId, questName, questCriteria, q
         playerQuestIndex[playerId] = {}
     end
     playerQuestIndex[playerId][questData.questId] = questData
+
+	-- save
+	questManager:SavePlayerQuests(playerId)
 
 	return questData.questId
 end
@@ -186,6 +232,7 @@ function questManager:UpdatePlayerLeaderStats(playerId, questId)
 
 			warn("Quest completed!")
 		end
+		questManager:SavePlayerQuests(playerId)
 	end
 end
 
