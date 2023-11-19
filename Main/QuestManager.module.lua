@@ -13,11 +13,16 @@ local questHolder = RS.QuestSystem.GUI.QuestHolder
 local QuestData = require(script.Parent.QuestData)
 local QuestTypes = require(script.Parent.QuestTypes)
 
+-- remotes and stuff
+local claimQuest = RS.QuestSystem.Remotes.ClaimQuest
+
 local QUEST_TYPES = QuestTypes
 
--- Lists
-local questManager = {}
+local questManager = {} -- module
+
+-- lists
 local playerQuests = {}
+local playerQuestIndex = {}
 
 -- Function to create a new quest for a player
 function questManager:CreateQuestForPlayer(playerId, questName, questCriteria, questType, questObjective)
@@ -69,6 +74,11 @@ function questManager:CreateQuestForPlayer(playerId, questName, questCriteria, q
 
 	questManager:CreateGUI(playerId, questData.questId, questName, questObjective)
 
+	if not playerQuestIndex[playerId] then
+        playerQuestIndex[playerId] = {}
+    end
+    playerQuestIndex[playerId][questData.questId] = questData
+
 	return questData.questId
 end
 
@@ -91,30 +101,41 @@ end
 
 -- Function to update the GUI for a player's quest
 function questManager:UpdateQuestGUI(playerId, questId, progress, questObjective, questStatus)
-	local player = game.Players:GetPlayerByUserId(playerId)
-	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.ActiveFrame
-	local questHolderClone = playerGui:WaitForChild(questId)
+    local player = game.Players:GetPlayerByUserId(playerId)
+    local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.ActiveFrame
+    local questHolderClone = playerGui:WaitForChild(questId)
 
-	local questObjectiveLabel = questHolderClone.ProgressBarFrame.ProgressBG.ProgressValue
-	local questObjectiveBar = questHolderClone.ProgressBarFrame.ProgressBG.ProgressFG
-	local questClaimFrame = questHolderClone.ProgressBarFrame.ClaimFrame
+    local questData = {
+        Progress = tostring(progress) .. " / " .. tostring(questObjective),
+        ProgressRatio = progress / questObjective,
+        QuestStatus = questStatus
+    }
 
-	questObjectiveLabel.Text = tostring(progress) .. " / " .. tostring(questObjective)
-	local progressRatio = progress / questObjective
-    questObjectiveBar.Size = UDim2.new(progressRatio, 0, 1, 0)
-	if questStatus == true then
+    -- Batch GUI updates for efficiency
+    self:BatchUpdateQuestGUI(questHolderClone, questData)
+end
+
+-- Function to batch update GUI elements for a quest
+function questManager:BatchUpdateQuestGUI(questHolderClone, questData)
+    local questObjectiveLabel = questHolderClone.ProgressBarFrame.ProgressBG.ProgressValue
+    local questObjectiveBar = questHolderClone.ProgressBarFrame.ProgressBG.ProgressFG
+    local questClaimFrame = questHolderClone.ProgressBarFrame.ClaimFrame
+
+    -- Perform batch GUI updates
+    questObjectiveLabel.Text = questData.Progress
+    questObjectiveBar.Size = UDim2.new(questData.ProgressRatio, 0, 1, 0)
+    questClaimFrame.Visible = questData.QuestStatus
+	if questData.QuestStatus == true then
 		questClaimFrame.Visible = true
 	end
 end
 
 -- Function to update the progress of a player's quest
 function questManager:UpdateQuestProgressForPlayer(playerId, questId, progress)
-	for _, questData in ipairs(playerQuests[playerId]) do
-		if questData.questId == questId then
-			questData.progress = progress
-			break
-		end
-	end
+    local questData = playerQuestIndex[playerId][questId]
+    if questData then
+        questData.progress = progress
+    end
 end
 
 -- Function to get a player's quest
@@ -124,21 +145,19 @@ end
 
 -- Function to check if a player's quest is completed
 function questManager:IsQuestCompletedForPlayer(playerId, questId)
-	for _, questData in ipairs(playerQuests[playerId]) do
-		if questData.questId == questId and questData.progress >= questData.questObjective then
-			questData.completed = true
-			return true
-		end
-	end
-	return false
+    local questData = playerQuestIndex[playerId][questId]
+    if questData and questData.progress >= questData.questObjective then
+        questData.completed = true
+        return true
+    end
+    return false
 end
 
 -- Function to get the quest data for a player's quest
 function questManager:GetQuestDataForPlayer(playerId, questId)
-	for _, questData in ipairs(playerQuests[playerId]) do
-		if questData.questId == questId then
-			return questData
-		end
+	local questData = playerQuestIndex[playerId][questId]
+	if questData.questId == questId then
+		return questData
 	end
 
 	return nil
@@ -159,18 +178,55 @@ function questManager:UpdatePlayerLeaderStats(playerId, questId)
 		questProgress.Value = questData.progress
 		questStatus.Value = questData.completed
 
-		
+
 		local questChecker = questManager:IsQuestCompletedForPlayer(playerId, questId)
 		questManager:UpdateQuestGUI(playerId, questId, questData.progress, questData.questObjective, questChecker)
 		if questChecker == true then
-			-- delete the folder:waitForChild questId of it
-			local questIdFolder = folder:WaitForChild(questId)
-			-- set questClaimed to true
 			questClaimed.Value, questData.claimed = true, true
 
 			warn("Quest completed!")
 		end
 	end
+end
+
+function questManager:DeletePlayerLeaderstats(playerId, questId)
+    local player = game.Players:GetPlayerByUserId(playerId)
+    local folder = player.Quests:WaitForChild("playerId")
+    local questIdFolder = folder:FindFirstChild(questId)
+    
+    if questIdFolder then
+        questIdFolder:Destroy()
+        questManager:DeleteQuestGUI(player, questId)
+        
+        local questIndex
+        for i, v in ipairs(playerQuests[playerId]) do
+            if v.questId == questId then
+                questIndex = i
+                break
+            end
+        end
+        
+        if questIndex then
+            table.remove(playerQuests[playerId], questIndex)
+        end
+        
+        -- Remove quest from playerQuestIndex
+        if playerQuestIndex[playerId] and playerQuestIndex[playerId][questId] then
+            playerQuestIndex[playerId][questId] = nil
+        end
+        
+        -- print the new table
+        -- print(playerQuests[playerId])
+    else
+		warn("Quest not found!")
+	end
+end
+
+
+function questManager:DeleteQuestGUI(player, questId)
+	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.ActiveFrame
+	local questHolderClone = playerGui:WaitForChild(questId)
+	questHolderClone:Destroy()
 end
 
 -- Function to generate a unique identifier for a quest
@@ -181,25 +237,24 @@ end
 
 -- Function to update progress for KILL_MOBS quests
 function questManager:UpdateKillMobsQuestProgress(playerId, questId, mobKills, questType)
-	for _, questData in ipairs(playerQuests[playerId]) do
-		if questData.questId == questId and questData.questType == questType then
-			if questData.claimed == false then
-				questData.progress = questData.progress + mobKills
-				questManager:UpdatePlayerLeaderStats(playerId, questId)
-			end
-			break
-		end
-	end
+    local questData = playerQuestIndex[playerId][questId]
+    if questData and questData.questType == questType and not questData.claimed then
+        questData.progress = questData.progress + mobKills
+        questManager:UpdatePlayerLeaderStats(playerId, questId)
+    end
 end
 
 -- Function to update progress for GET_COINS quests
 function questManager:UpdateGetCoinsQuestProgress(playerId, questId, coinsCollected)
-	for _, questData in ipairs(playerQuests[playerId]) do
-		if questData.questId == questId and questData.questType == QUEST_TYPES.GET_COINS then
-			questData.progress = questData.progress + coinsCollected
-			break
-		end
-	end
+    local questData = playerQuestIndex[playerId][questId]
+    if questData and questData.questType == QUEST_TYPES.GET_COINS then
+        questData.progress = questData.progress + coinsCollected
+    end
 end
+
+-- server events
+claimQuest.OnServerEvent:Connect(function(player, questId)
+	questManager:DeletePlayerLeaderstats(player.UserId, questId)
+end)
 
 return questManager
