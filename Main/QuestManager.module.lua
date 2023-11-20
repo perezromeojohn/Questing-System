@@ -36,16 +36,16 @@ function questManager:Init(playerId, questData)
 
 end
 
-function questManager:CreateQuestForPlayer(playerId, questName, questCriteria, questType, questObjective, questTarget)
+function questManager:CreateQuestForPlayer(playerId, questattribute)
 	local questData = QuestData.new()
 	questData.questId = GenerateUniqueId()
-	questData.questName = questName
-	questData.questCriteria = questCriteria
-	questData.questType = questType
-	questData.questObjective = questObjective
-	questData.questTarget = questTarget
+	questData.questName = questattribute["questName"]
+	questData.questCriteria = questattribute["questCriteria"]
+	questData.questType = questattribute["questType"]
+	questData.questObjective = questattribute["questObjective"] 
+	questData.questTarget = questattribute["questTarget"]
 	questData.progress = 0
-	questData.completed = false
+	questData.completed = questattribute["completed"]
 	questData.claimed = false
 
 	-- Ensure playerQuests[playerId] is a table
@@ -74,13 +74,13 @@ function questManager:CreateGUI(playerId, questData)
 	--questId, questName, questObjective
 	local player = game.Players:GetPlayerByUserId(playerId)
 	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.ActiveFrame
-	
+
 	if questData.claimed ~= true  then
 		print("okay")
 		local questHolderClone = questHolder:Clone()
 		questHolderClone.Parent = playerGui
 		questHolderClone.Name = questData.questId
-		
+
 		local questNameLabel = questHolderClone.QuestName
 		local questObjectiveLabel = questHolderClone.ProgressBarFrame.ProgressBG.ProgressValue
 		local questObjectiveBar = questHolderClone.ProgressBarFrame.ProgressBG.ProgressFG
@@ -89,8 +89,8 @@ function questManager:CreateGUI(playerId, questData)
 		questObjectiveLabel.Text = "0 / " .. tostring(questData.questObjective)
 		questObjectiveBar.Size = UDim2.new(0, 0, 1, 0)
 	end
-	
-	
+
+
 end
 
 -- Function to update the GUI for a player's quest
@@ -110,7 +110,7 @@ function questManager:UpdateQuestGUI(playerId, questId, progress, questObjective
 	if questHolderClone then
 		self:BatchUpdateQuestGUI(questHolderClone, questData)
 	end
-	
+
 end
 
 -- Function to batch update GUI elements for a quest
