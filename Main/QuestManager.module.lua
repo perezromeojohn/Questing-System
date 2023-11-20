@@ -56,7 +56,7 @@ function questManager:CreateQuestForPlayer(playerId, questName, questCriteria, q
 
 	local player = game.Players:GetPlayerByUserId(playerId)
 
-	questManager:CreateGUI(playerId, questData.questId, questName, questObjective)
+	questManager:CreateGUI(playerId, questData)
 
 	-- Save
 	PlayerManager.SetQuestData(player, questData)
@@ -68,20 +68,28 @@ function questManager:CreateQuestForPlayer(playerId, questName, questCriteria, q
 end
 
 -- Function to create the GUI for a player's quest
-function questManager:CreateGUI(playerId, questId, questName, questObjective)
+function questManager:CreateGUI(playerId, questData)
+	--.questId, v.questName, v.questObjective
+	--questId, questName, questObjective
 	local player = game.Players:GetPlayerByUserId(playerId)
 	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.ActiveFrame
-	local questHolderClone = questHolder:Clone()
-	questHolderClone.Parent = playerGui
-	questHolderClone.Name = questId
+	
+	if questData.claimed ~= true  then
+		print("okay")
+		local questHolderClone = questHolder:Clone()
+		questHolderClone.Parent = playerGui
+		questHolderClone.Name = questData.questId
+		
+		local questNameLabel = questHolderClone.QuestName
+		local questObjectiveLabel = questHolderClone.ProgressBarFrame.ProgressBG.ProgressValue
+		local questObjectiveBar = questHolderClone.ProgressBarFrame.ProgressBG.ProgressFG
 
-	local questNameLabel = questHolderClone.QuestName
-	local questObjectiveLabel = questHolderClone.ProgressBarFrame.ProgressBG.ProgressValue
-	local questObjectiveBar = questHolderClone.ProgressBarFrame.ProgressBG.ProgressFG
-
-	questNameLabel.Text = questName
-	questObjectiveLabel.Text = "0 / " .. tostring(questObjective)
-	questObjectiveBar.Size = UDim2.new(0, 0, 1, 0)
+		questNameLabel.Text = questData.questName
+		questObjectiveLabel.Text = "0 / " .. tostring(questData.questObjective)
+		questObjectiveBar.Size = UDim2.new(0, 0, 1, 0)
+	end
+	
+	
 end
 
 -- Function to update the GUI for a player's quest
@@ -89,7 +97,7 @@ function questManager:UpdateQuestGUI(playerId, questId, progress, questObjective
 	print("warn")
 	local player = game.Players:GetPlayerByUserId(playerId)
 	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.ActiveFrame
-	local questHolderClone = playerGui:WaitForChild(questId)
+	local questHolderClone = playerGui:FindFirstChild(questId)
 
 	local questData = {
 		Progress = tostring(progress) .. " / " .. tostring(questObjective),
@@ -98,14 +106,17 @@ function questManager:UpdateQuestGUI(playerId, questId, progress, questObjective
 	}
 
 	-- Batch GUI updates for efficiency
-	self:BatchUpdateQuestGUI(questHolderClone, questData)
+	if questHolderClone then
+		self:BatchUpdateQuestGUI(questHolderClone, questData)
+	end
+	
 end
 
 -- Function to batch update GUI elements for a quest
 function questManager:BatchUpdateQuestGUI(questHolderClone, questData)
-	local questObjectiveLabel = questHolderClone.ProgressBarFrame.ProgressBG.ProgressValue
-	local questObjectiveBar = questHolderClone.ProgressBarFrame.ProgressBG.ProgressFG
-	local questClaimFrame = questHolderClone.ProgressBarFrame.ClaimFrame
+	local questObjectiveLabel = questHolderClone:WaitForChild("ProgressBarFrame").ProgressBG.ProgressValue
+	local questObjectiveBar = questHolderClone:WaitForChild("ProgressBarFrame").ProgressBG.ProgressFG
+	local questClaimFrame = questHolderClone:WaitForChild("ProgressBarFrame").ClaimFrame
 
 	-- Perform batch GUI updates
 	questObjectiveLabel.Text = questData.Progress
@@ -230,7 +241,7 @@ function GenerateUniqueId()
 end
 
 -- Function to update progress for KILL_MOBS quests
-function questManager:UpdateKillMobsQuestProgress(playerId, questId, mobKills, questType) -- arguments has value
+function questManager:UpdateKillMobsQuestProgress(playerId, questId, mobKills, questType, mobName) -- arguments has value
 	for _, questData in ipairs(playerQuests[playerId]) do
 		if questData.questId == questId then
 			if questData.questType == questType and questData.completed == false then

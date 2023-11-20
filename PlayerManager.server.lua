@@ -2,7 +2,7 @@ local Players = game:GetService("Players")
 local DataStoreService = game:GetService("DataStoreService")
 local httpService = game:GetService("HttpService")
 --local PlayerData = DataStoreService:GetDataStore("ProjectIsekai-StagingTest-B-007")
-local PlayerData = DataStoreService:GetDataStore("Romeo-010")
+local PlayerData = DataStoreService:GetDataStore("Romeo-011")
 
 local SSS = game:GetService("ServerScriptService")
 
@@ -179,7 +179,7 @@ local function QuestData(player, val)
 	for i, v in pairs(val) do
 		local stringval = Instance.new("StringValue", Quests)
 		stringval.Name = v.questId
-		QM:CreateGUI(player.UserId, v.questId, v.questName, v.questObjective)
+		QM:CreateGUI(player.UserId, v)
 		-- playerId, questId, progress, questObjective, questStatus
 		QM:UpdateQuestGUI(player.UserId, v.questId, v.progress, v.questObjective, v.completed)
 
