@@ -36,13 +36,14 @@ function questManager:Init(playerId, questData)
 
 end
 
-function questManager:CreateQuestForPlayer(playerId, questName, questCriteria, questType, questObjective)
+function questManager:CreateQuestForPlayer(playerId, questName, questCriteria, questType, questObjective, questTarget)
 	local questData = QuestData.new()
 	questData.questId = GenerateUniqueId()
 	questData.questName = questName
 	questData.questCriteria = questCriteria
 	questData.questType = questType
 	questData.questObjective = questObjective
+	questData.questTarget = questTarget
 	questData.progress = 0
 	questData.completed = false
 	questData.claimed = false
@@ -245,9 +246,13 @@ function questManager:UpdateKillMobsQuestProgress(playerId, questId, mobKills, q
 	for _, questData in ipairs(playerQuests[playerId]) do
 		if questData.questId == questId then
 			if questData.questType == questType and questData.completed == false then
-				questData.progress = questData.progress + mobKills
-				questManager:UpdatePlayerLeaderStats(playerId, questId)
+				if questData.questTarget == mobName then
+					questData.progress = questData.progress + mobKills
+					questManager:UpdatePlayerLeaderStats(playerId, questId)
+				end
 			end
+		else
+			warn("Invalid")
 		end
 	end
 end

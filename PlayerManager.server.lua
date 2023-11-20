@@ -844,6 +844,7 @@ function PlayerManager.SetQuestData(player, val)
 		questCriteria = val.questCriteria,
 		questType = val.questType,
 		questObjective = val.questObjective,
+		questTarget = val.questTarget,
 		progress = val.progress,
 		completed = val.completed,
 		claimed = val.claimed,
