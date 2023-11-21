@@ -2,7 +2,6 @@
 local dataStoreService = game:GetService("DataStoreService")
 local questDataStore = dataStoreService:GetDataStore("TESTTHINGY1") -- rename this for new database
 
-
 local HttpService = game:GetService("HttpService")
 local RS = game:GetService("ReplicatedStorage")
 local TS = game:GetService("TweenService")
@@ -34,7 +33,6 @@ function questManager:Init(playerId, questData)
 	for _, quest in pairs(questData) do
 		table.insert(playerQuests[playerId], quest) -- Insert each quest into the existing table
 	end
-
 end
 
 function questManager:CreateQuestForPlayer(playerId, questattribute)
@@ -51,6 +49,7 @@ function questManager:CreateQuestForPlayer(playerId, questattribute)
 	questData.questrepeat = questattribute["questrepeat"]
 	questData.reward1 = questattribute["reward1"]
 	questData.reward2 = questattribute["reward2"]
+
 
 	-- Ensure playerQuests[playerId] is a table
 	if playerQuests[playerId] == nil then
@@ -265,7 +264,7 @@ function GenerateUniqueId()
 end
 
 -- Function to update progress for KILL_MOBS quests
-function questManager:UpdateKillMobsQuestProgress(playerId, questId, progress, questType, targetName) -- arguments has value
+function questManager:UpdateQuestProgress(playerId, questId, progress, questType, targetName) -- arguments has value
 	for _, questData in ipairs(playerQuests[playerId]) do
 		if questData.questId == questId then
 			if questData.questType == questType and questData.completed == false then

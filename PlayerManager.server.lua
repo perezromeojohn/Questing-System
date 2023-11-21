@@ -1,8 +1,8 @@
 local Players = game:GetService("Players")
 local DataStoreService = game:GetService("DataStoreService")
 local httpService = game:GetService("HttpService")
---local PlayerData = DataStoreService:GetDataStore("ProjectIsekai-StagingTest-B-007")
-local PlayerData = DataStoreService:GetDataStore("Romeo-015")
+local PlayerData = DataStoreService:GetDataStore("ProjectIsekai-StagingTest-B-008")
+--local PlayerData = DataStoreService:GetDataStore("Romeo-015")
 
 local SSS = game:GetService("ServerScriptService")
 
@@ -317,6 +317,10 @@ function PlayerManager.OnCharacterAdded(player, character)
 		humanoid.Died:Connect(function()
 			wait(2)
 			player:LoadCharacter()
+			QuestData(
+				player,
+				PlayerManager.GetQuestData(player)
+			)
 		end)
 	end
 end
@@ -847,6 +851,9 @@ function PlayerManager.SetQuestData(player, val)
 		progress = val.progress,
 		completed = val.completed,
 		claimed = val.claimed,
+		questrepeat = val.questrepeat,
+		reward1 = val.reward1,
+		reward2 = val.reward2,
 	}
 
 	local questData = player:FindFirstChild("Quests")
