@@ -17,6 +17,7 @@ local QuestTypes = require(script.Parent.QuestTypes)
 
 -- remotes and stuff
 local claimQuest = RS.QuestSystem.Remotes.ClaimQuest
+local notifQuest = RS.QuestSystem.Remotes.Notif
 
 local QUEST_TYPES = QuestTypes
 
@@ -47,6 +48,9 @@ function questManager:CreateQuestForPlayer(playerId, questattribute)
 	questData.progress = 0
 	questData.completed = questattribute["completed"]
 	questData.claimed = false
+	questData.questrepeat = questattribute["questrepeat"]
+	questData.reward1 = questattribute["reward1"]
+	questData.reward2 = questattribute["reward2"]
 
 	-- Ensure playerQuests[playerId] is a table
 	if playerQuests[playerId] == nil then
@@ -62,8 +66,10 @@ function questManager:CreateQuestForPlayer(playerId, questattribute)
 	-- Save
 	PlayerManager.SetQuestData(player, questData)
 
-	print(playerQuests[playerId])
-	print(playerQuests)
+	-- print(playerQuests[playerId])
+	-- print(playerQuests)
+
+	notifQuest:FireClient(player, "New Quest!")
 
 	return questData.questId
 end
@@ -76,7 +82,6 @@ function questManager:CreateGUI(playerId, questData)
 	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.ActiveFrame
 
 	if questData.claimed ~= true  then
-		print("okay")
 		local questHolderClone = questHolder:Clone()
 		questHolderClone.Parent = playerGui
 		questHolderClone.Name = questData.questId
@@ -88,14 +93,29 @@ function questManager:CreateGUI(playerId, questData)
 		questNameLabel.Text = questData.questName
 		questObjectiveLabel.Text = "0 / " .. tostring(questData.questObjective)
 		questObjectiveBar.Size = UDim2.new(0, 0, 1, 0)
+
+		-- Check if questData.reward1 and reward2 have values, and clone the GUI accordingly
+		if questData.reward1 ~= nil then
+			local rewardHolderClone = RS.QuestSystem.GUI.RewardHolder:Clone()
+			rewardHolderClone.Parent = questHolderClone.RewardFrame.RewardHolder
+			rewardHolderClone.Image = "rbxassetid://14092500930" -- might change
+			rewardHolderClone.Amount.Text = "+"..tostring(questData.reward1) -- might change
+		end
+
+		if questData.reward2 ~= nil then
+			local rewardHolderClone = RS.QuestSystem.GUI.RewardHolder:Clone()
+			rewardHolderClone.Parent = questHolderClone.RewardFrame.RewardHolder
+			rewardHolderClone.Amount.Text = "+"..tostring(questData.reward2) -- might change
+		end
+
+		if questData.reward1 == nil and questData.reward2 == nil then
+			warn("This quest has no reward!")
+		end
 	end
-
-
 end
 
 -- Function to update the GUI for a player's quest
 function questManager:UpdateQuestGUI(playerId, questId, progress, questObjective, questStatus)
-	print("warn")
 	local player = game.Players:GetPlayerByUserId(playerId)
 	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.ActiveFrame
 	local questHolderClone = playerGui:FindFirstChild(questId)
@@ -146,7 +166,6 @@ end
 function questManager:IsQuestCompletedForPlayer(playerId, questId)
 	for _, questData in ipairs(playerQuests[playerId]) do
 		if questData.questId == questId and questData.progress == questData.questObjective then
-			print(questData.progress, questData.questObjective)
 			questData.completed = true
 			return true
 		end
@@ -182,7 +201,7 @@ function questManager:UpdatePlayerLeaderStats(playerId, questId)
 			-- folder:WaitForChild(questId):SetAttribute("claimed", questData.claimed)
 			questData.completed = true
 			folder:WaitForChild(questId):SetAttribute("completed", questData.completed)
-			warn("Quest completed!")
+			notifQuest:FireClient(player, "Quest Completed!")
 		end
 		PlayerManager.SetQuestData(player, questData)
 	end
@@ -191,12 +210,17 @@ end
 function questManager:DeletePlayerLeaderstats(playerId, questId)
 	local player = game.Players:GetPlayerByUserId(playerId)
 	local questData = questManager:GetQuestDataForPlayer(playerId, questId)
-	print(questData)
 	local folder = player.Quests:WaitForChild(questId)
 
 	if folder then
+		print(questData)
 		-- folder:Destroy()
-		questManager:DeleteQuestGUI(player, questId)
+		folder:SetAttribute("claimed", true)
+		if  questData and questData.claimed == false then
+			questData.claimed = true
+		else
+			return
+		end
 
 		local questIndex
 		for i, v in ipairs(playerQuests[playerId]) do
@@ -205,9 +229,6 @@ function questManager:DeletePlayerLeaderstats(playerId, questId)
 				break
 			end
 		end
-
-		folder:SetAttribute("claimed", true)
-		questData.claimed = true
 
 		if questIndex then
 			table.remove(playerQuests[playerId], questIndex)
@@ -220,7 +241,7 @@ function questManager:DeletePlayerLeaderstats(playerId, questId)
 
 
 		PlayerManager.SetQuestData(player, questData)
-		print(questData)
+		questManager:DeleteQuestGUI(player, questId)
 		-- print the new table
 		-- print(playerQuests[playerId])
 	else
@@ -231,8 +252,10 @@ end
 
 function questManager:DeleteQuestGUI(player, questId)
 	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.ActiveFrame
-	local questHolderClone = playerGui:WaitForChild(questId)
-	questHolderClone:Destroy()
+	local questHolderClone = playerGui:FindFirstChild(questId)
+	if questHolderClone then
+		questHolderClone:Destroy()
+	end
 end
 
 -- Function to generate a unique identifier for a quest
@@ -242,17 +265,15 @@ function GenerateUniqueId()
 end
 
 -- Function to update progress for KILL_MOBS quests
-function questManager:UpdateKillMobsQuestProgress(playerId, questId, mobKills, questType, mobName) -- arguments has value
+function questManager:UpdateKillMobsQuestProgress(playerId, questId, progress, questType, targetName) -- arguments has value
 	for _, questData in ipairs(playerQuests[playerId]) do
 		if questData.questId == questId then
 			if questData.questType == questType and questData.completed == false then
-				if questData.questTarget == mobName then
-					questData.progress = questData.progress + mobKills
+				if questData.questTarget == targetName then
+					questData.progress = questData.progress + progress
 					questManager:UpdatePlayerLeaderStats(playerId, questId)
 				end
 			end
-		else
-			warn("Invalid")
 		end
 	end
 end
@@ -270,9 +291,21 @@ function questManager:UpdateGetCoinsQuestProgress(playerId, questId, coinsCollec
 end
 
 -- server events
-claimQuest.OnServerEvent:Connect(function(player, questId)
+claimQuest.OnServerEvent:Connect(function(player, questId, reward)
 	questManager:DeletePlayerLeaderstats(player.UserId, questId)
-	print("REWARD CLAIM")
+
+	local QuestFolder = player:FindFirstChild("Quests")
+
+	for _, questData in ipairs(QuestFolder:GetChildren()) do
+		if questData:GetAttribute("questId") == questId then
+			PlayerManager.SetMoney(player, PlayerManager.GetMoney(player) + questData:GetAttribute("reward1"))
+
+			if questData:GetAttribute("reward2") then
+				PlayerManager.SetSoul(player, PlayerManager.GetSoul(player) + questData:GetAttribute("reward2"))
+			end
+
+		end
+	end
 end)
 
 return questManager
