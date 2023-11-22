@@ -7,7 +7,9 @@ local RS = game:GetService("ReplicatedStorage")
 local QuestDictionary = require(script.QuestDictionary)
 local QM = require(SSS.QuestSystem.QuestInit.QuestManager)
 
-local QuestDialog = RS.QuestSystem.Remotes.QuestDialog
+local QuestDialogRemote = RS.QuestSystem.Remotes.QuestDialog
+
+local event = game:GetService("ReplicatedStorage"):WaitForChild("Signals"):WaitForChild("TALK_NPCBindableEvent")
 
 local QuestNpc = {}
 QuestNpc.__index = QuestNpc
@@ -22,16 +24,21 @@ function QuestNpc.new(instance, name)
 	self:SetQuestAttribute()
 
 	self.Prompt = self:CreatePrompt()
-	self.ConnTrigger = self.Prompt.Triggered:Connect(function(plr)
+	self.ConnTrigger = self.Prompt.TriggerEnded:Connect(function(plr)
 		local playerId = plr.UserId
+		local getTagged = collectionService:GetTagged("Quest")
 
-		-- QM:CreateQuestForPlayer(
-		-- 	playerId,
-		-- 	self.QuestNPC:GetAttributes()
-		-- )
-        print("HELLO PO")
+		if table.find(getTagged, self.QuestNPC) then
+			event:Fire(plr, playerId)
+			task.wait(0.5)
+			QuestDialogRemote:FireClient(plr, playerId, self.NPCName, self.QuestNPC:GetAttributes())
+		else
+			QuestDialogRemote:FireClient(plr, playerId, self.NPCName, self.QuestNPC:GetAttributes())
+		end
+
+
 	end)
-	
+
 	return self
 end
 
@@ -43,15 +50,18 @@ function QuestNpc:SetQuestAttribute()
 	self.QuestNPC:SetAttribute("questTarget", QuestDictionary[self.NPCName][1]["questTarget"])
 	self.QuestNPC:SetAttribute("questType", QuestDictionary[self.NPCName][1]["questType"])
 	self.QuestNPC:SetAttribute("questrepeat", QuestDictionary[self.NPCName][1]["questrepeat"])
-	self.QuestNPC:SetAttribute("reward1", QuestDictionary[self.NPCName][1]["reward"]["reward1"])
-	self.QuestNPC:SetAttribute("reward2", QuestDictionary[self.NPCName][1]["reward"]["reward2"])
+	self.QuestNPC:SetAttribute("reward1", QuestDictionary[self.NPCName][1]["reward1"])
+	self.QuestNPC:SetAttribute("reward2", QuestDictionary[self.NPCName][1]["reward2"])
+	self.QuestNPC:SetAttribute("reward3", QuestDictionary[self.NPCName][1]["reward3"])
+	self.QuestNPC:SetAttribute("questDialog", QuestDictionary[self.NPCName][1]["questDialog"])
+	self.QuestNPC:SetAttribute("questLevel", QuestDictionary[self.NPCName][1]["questLevel"])
 end
 
 function QuestNpc:CreatePrompt()
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Parent = self.QuestNPC
-	prompt.HoldDuration = 0.5
-	prompt.ActionText = "Talk"
+	prompt.HoldDuration = 0.2
+	prompt.ActionText = "Talk to ".. self.NPCName
 	prompt.UIOffset = Vector2.new(0, 0)
 
 	return prompt

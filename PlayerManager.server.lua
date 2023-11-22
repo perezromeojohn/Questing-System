@@ -2,7 +2,7 @@ local Players = game:GetService("Players")
 local DataStoreService = game:GetService("DataStoreService")
 local httpService = game:GetService("HttpService")
 --local PlayerData = DataStoreService:GetDataStore("ProjectIsekai-StagingTest-B-008")
-local PlayerData = DataStoreService:GetDataStore("Romeo-017")
+local PlayerData = DataStoreService:GetDataStore("Romeo-030")
 
 local SSS = game:GetService("ServerScriptService")
 
@@ -852,8 +852,10 @@ function PlayerManager.SetQuestData(player, val)
 		completed = val.completed,
 		claimed = val.claimed,
 		questrepeat = val.questrepeat,
+		questSource = val.questSource,
 		reward1 = val.reward1,
 		reward2 = val.reward2,
+		reward3 = val.reward3,
 	}
 
 	local questData = player:FindFirstChild("Quests")

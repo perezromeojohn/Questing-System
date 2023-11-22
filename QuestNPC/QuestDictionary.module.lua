@@ -8,13 +8,14 @@ local Quest = {
 			questTarget = "Erggies",
 			questrepeat = false,
 			questType = "KILL_MOBS",
-			reward = {
-				reward1 = 100,
-				reward2 = 100
-			}
+			questDialog = "sample dialoge",
+			questLevel = 1,
+			reward1 = 100,
+			reward2 = 0,
+			reward3 = 0,
 		},
 	},
-	
+
 	["NPC2"] = {
 		[1] = {
 			questObjective = 5,
@@ -24,13 +25,14 @@ local Quest = {
 			questTarget = "Birgg",
 			questrepeat = false,
 			questType = "KILL_MOBS",
-			reward = {
-				reward1 = 100,
-				reward2 = 100
-			}
+			questDialog = "sample fuckerinoes",
+			questLevel = 1,
+			reward1 = 100,
+			reward2 = 800,
+			reward3 = 0,
 		},
 	},
-	
+
 	["NPC3"] = {
 		[1] = {
 			questObjective = 1,
@@ -40,13 +42,14 @@ local Quest = {
 			questTarget = "NPC1",
 			questrepeat = false,
 			questType = "TALK_NPC",
-			reward = {
-				reward1 = 100,
-				reward2 = nil
-			}
+			questDialog = "sample dialoge",
+			questLevel = 1,
+			reward1 = 100,
+			reward2 = 0,
+			reward3 = 0,
 		},
 	},
-	
+
 	["NPC4"] = {
 		[1] = {
 			questObjective = 10,
@@ -56,10 +59,11 @@ local Quest = {
 			questTarget = "item",
 			questrepeat = false,
 			questType = "GATHER_ITEM",
-			reward = {
-				reward1 = 100,
-				reward2 = nil
-			}
+			questDialog = "sample dialoge",
+			questLevel = 1,
+			reward1 = 100,
+			reward2 = 0,
+			reward3 = 0,
 		},
 	},
 }

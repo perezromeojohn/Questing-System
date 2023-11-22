@@ -13,8 +13,10 @@ function QuestData:new()
 		completed = false, -- Flag indicating whether the quest is completed
 		claimed = false, -- Flag indicating whether the quest is claimed
 		questrepeat = false, -- can repeat quest
+		questSource = nil, -- source
 		reward1 = nil,
-		reward2 = nil
+		reward2 = nil,
+		reward3 = nil
 	}
 	return questData
 end

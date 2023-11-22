@@ -21,6 +21,7 @@ local closeBtn = QuestSystemScreen.MainFrame.CloseButton
 
 local claimButtons = {}
 
+
 -- local functions
 local function addButtonFunction()
 	for _, button in ipairs(claimButtons) do
@@ -28,13 +29,13 @@ local function addButtonFunction()
 			local questId = button.Parent.Parent.Parent.Name
 			--button.Parent.Parent.Parent:Destroy()
 			claimQuest:FireServer(questId)
-            -- remove the button in the table
-            for i, btn in ipairs(claimButtons) do
-                if btn == button then
-                    table.remove(claimButtons, i)
-                    break
-                end
-            end
+			-- remove the button in the table
+			for i, btn in ipairs(claimButtons) do
+				if btn == button then
+					table.remove(claimButtons, i)
+					break
+				end
+			end
 		end)
 	end
 end
@@ -65,7 +66,6 @@ questBtn.MouseButton1Click:Connect(function()
 	questBtn.Visible = false
 
 	getButton()
-	print("Claim buttons: " .. #claimButtons)
 end)
 
 closeBtn.MouseButton1Click:Connect(function()
@@ -76,7 +76,8 @@ end)
 
 addButtonFunction()
 
-print(claimButtons)
+
+
 -- client side functions to serverside
 
 -- returning lists from serverside to clientside
