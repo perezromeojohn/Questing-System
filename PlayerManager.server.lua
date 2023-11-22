@@ -1,8 +1,8 @@
 local Players = game:GetService("Players")
 local DataStoreService = game:GetService("DataStoreService")
 local httpService = game:GetService("HttpService")
-local PlayerData = DataStoreService:GetDataStore("ProjectIsekai-StagingTest-B-008")
---local PlayerData = DataStoreService:GetDataStore("Romeo-015")
+--local PlayerData = DataStoreService:GetDataStore("ProjectIsekai-StagingTest-B-008")
+local PlayerData = DataStoreService:GetDataStore("Romeo-017")
 
 local SSS = game:GetService("ServerScriptService")
 
@@ -167,7 +167,7 @@ local function CosmeticsInventory(player, head, back, body, hand, feet, cosmetic
 end
 
 local function QuestData(player, val)
-	local QM = require(SSS.QuestSystem.QuestInit.QuestManager)
+	--local QM = require(SSS.QuestSystem.QuestInit.QuestManager)
 	local Quests = Instance.new("Folder", player)
 	Quests.Name = "Quests"
 
@@ -179,16 +179,16 @@ local function QuestData(player, val)
 	for i, v in pairs(val) do
 		local stringval = Instance.new("StringValue", Quests)
 		stringval.Name = v.questId
-		QM:CreateGUI(player.UserId, v)
-		-- playerId, questId, progress, questObjective, questStatus
-		QM:UpdateQuestGUI(player.UserId, v.questId, v.progress, v.questObjective, v.completed)
+		--QM:CreateGUI(player.UserId, v)
+		---- playerId, questId, progress, questObjective, questStatus
+		--QM:UpdateQuestGUI(player.UserId, v.questId, v.progress, v.questObjective, v.completed)
 
 		for aName, aVal in pairs(v) do
 			stringval:SetAttribute(aName, aVal)
 		end
 	end
 
-	QM:Init(player.UserId, val)
+	--QM:Init(player.UserId, val)
 end
 
 local playerAdded = Instance.new("BindableEvent")
@@ -317,10 +317,10 @@ function PlayerManager.OnCharacterAdded(player, character)
 		humanoid.Died:Connect(function()
 			wait(2)
 			player:LoadCharacter()
-			QuestData(
-				player,
-				PlayerManager.GetQuestData(player)
-			)
+			--QuestData(
+			--	player,
+			--	PlayerManager.GetQuestData(player)
+			--)
 		end)
 	end
 end
