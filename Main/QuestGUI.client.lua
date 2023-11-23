@@ -19,6 +19,8 @@ local blur = game:GetService("Lighting").InventoryBlur
 local questBtn = QuestSystemScreen.MainButton
 local closeBtn = QuestSystemScreen.MainFrame.CloseButton
 
+local hasFiredServer = false
+
 local claimButtons = {}
 
 
@@ -27,7 +29,6 @@ local function addButtonFunction()
 	for _, button in ipairs(claimButtons) do
 		button.MouseButton1Click:Connect(function()
 			local questId = button.Parent.Parent.Parent.Name
-			--button.Parent.Parent.Parent:Destroy()
 			claimQuest:FireServer(questId)
 			-- remove the button in the table
 			for i, btn in ipairs(claimButtons) do

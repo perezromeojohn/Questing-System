@@ -1,11 +1,11 @@
-
-
 local collectionService = game:GetService("CollectionService")
 local SSS = game:GetService("ServerScriptService")
 local RS = game:GetService("ReplicatedStorage")
 
 local QuestDictionary = require(script.QuestDictionary)
 local QM = require(SSS.QuestSystem.QuestInit.QuestManager)
+
+local questIndicatorMesh = RS.QuestSystem.QuestGUI
 
 local QuestDialogRemote = RS.QuestSystem.Remotes.QuestDialog
 
@@ -21,6 +21,12 @@ function QuestNpc.new(instance, name)
 	self.QuestNPC = instance
 	self.NPCName = name
 
+	-- clone the questIndicatorMesh mesh and parent it to the questNPC model, set its position to the self.instance and make sure the gui mesh always appears in the ground or feet of the instance
+	local questIndicatorMeshClone = questIndicatorMesh:Clone()
+	questIndicatorMeshClone.Parent = self.QuestNPC
+	questIndicatorMeshClone.Position = self.QuestNPC.HumanoidRootPart.Position
+	questIndicatorMeshClone.Position = Vector3.new(questIndicatorMeshClone.Position.X, self.QuestNPC.LeftFoot.Position.Y, questIndicatorMeshClone.Position.Z)
+
 	self:SetQuestAttribute()
 
 	self.Prompt = self:CreatePrompt()
@@ -35,8 +41,6 @@ function QuestNpc.new(instance, name)
 		else
 			QuestDialogRemote:FireClient(plr, playerId, self.NPCName, self.QuestNPC:GetAttributes())
 		end
-
-
 	end)
 
 	return self
