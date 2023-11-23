@@ -19,54 +19,13 @@ local blur = game:GetService("Lighting").InventoryBlur
 local questBtn = QuestSystemScreen.MainButton
 local closeBtn = QuestSystemScreen.MainFrame.CloseButton
 
-local hasFiredServer = false
-
-local claimButtons = {}
-
-
--- local functions
-local function addButtonFunction()
-	for _, button in ipairs(claimButtons) do
-		button.MouseButton1Click:Connect(function()
-			local questId = button.Parent.Parent.Parent.Name
-			claimQuest:FireServer(questId)
-			-- remove the button in the table
-			for i, btn in ipairs(claimButtons) do
-				if btn == button then
-					table.remove(claimButtons, i)
-					break
-				end
-			end
-		end)
-	end
-end
-
-local function getButton()
-	for _, button in ipairs(MainScreen:GetDescendants()) do
-		if button:IsA("ImageButton") and button.Name == "ClaimButton" then
-			local isButtonAlreadyAdded = false
-			for _, btn in ipairs(claimButtons) do
-				if btn == button then
-					isButtonAlreadyAdded = true
-					break
-				end
-			end
-			if not isButtonAlreadyAdded then
-				table.insert(claimButtons, button)
-			end
-		end
-	end
-
-	addButtonFunction()
-end
-
 -- button actions
 questBtn.MouseButton1Click:Connect(function()
 	MainScreen.Visible = true
 	blur.Enabled = true
 	questBtn.Visible = false
 
-	getButton()
+	--getButton()
 end)
 
 closeBtn.MouseButton1Click:Connect(function()
@@ -75,7 +34,7 @@ closeBtn.MouseButton1Click:Connect(function()
 	questBtn.Visible = true
 end)
 
-addButtonFunction()
+--addButtonFunction()
 
 
 
