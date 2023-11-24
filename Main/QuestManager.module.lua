@@ -32,9 +32,10 @@ function questManager:Init(playerId, questData)
 	for _, quest in pairs(questData) do
 		questManager:CreateGUI(playerId, quest)
 		questManager:UpdateQuestGUI(playerId, quest.questId, quest.progress, quest.questObjective, quest.completed)
-		questManager:SetActiveQuest(playerId)
 		table.insert(playerQuests[playerId], quest) -- Insert each quest into the existing table
+		questManager:SetActiveQuest(playerId)
 	end
+	print("Quests Loaded...")
 end
 
 function questManager:CreateQuestForPlayer(playerId, questattribute)
@@ -53,7 +54,6 @@ function questManager:CreateQuestForPlayer(playerId, questattribute)
 	questData.reward1 = questattribute["reward1"]
 	questData.reward2 = questattribute["reward2"]
 	questData.reward3 = questattribute["reward3"]
-
 
 	-- Ensure playerQuests[playerId] is a table
 	if playerQuests[playerId] == nil then
@@ -125,13 +125,14 @@ function questManager:UpdateQuestGUI(playerId, questId, progress, questObjective
 	local questData = {
 		Progress = tostring(progress) .. " / " .. tostring(questObjective),
 		ProgressRatio = progress / questObjective,
-		QuestStatus = questStatus
+		QuestStatus = questStatus,
+		PlayerID = playerId,
+		QuestID = questId,
 	}
 
 	-- Batch GUI updates for efficiency
 	if questHolderClone then
-		self:BatchUpdateQuestGUI(questHolderClone, questData)
-		self:UpdateActiveQuest(playerId, questId, questData)
+		questManager:BatchUpdateQuestGUI(questHolderClone, questData)
 	end
 end
 
@@ -141,8 +142,6 @@ function questManager:UpdateActiveQuest(playerId, questId, questData)
 	local activeQuestFrame = player.PlayerGui.QuestSystem.ActiveQuest
 	local iconCheck = activeQuestFrame.Check
 	local progressText = activeQuestFrame.Progress
-
-	print("hello")
 
 	if activeQuestFrame.Visible == true then
 		progressText.Text = questData.Progress
@@ -164,6 +163,7 @@ function questManager:BatchUpdateQuestGUI(questHolderClone, questData)
 	questObjectiveLabel.Text = questData.Progress
 	questObjectiveBar.Size = UDim2.new(questData.ProgressRatio, 0, 1, 0)
 	--questClaimFrame.Visible = questData.QuestStatus
+	questManager:UpdateActiveQuest(questData.PlayerID, questData.QuestID, questData)
 	if questData.QuestStatus == true then
 		local claim = questClaimFrame:Clone()
 		claim.Parent =  questHolderClone:WaitForChild("ProgressBarFrame")
@@ -232,35 +232,35 @@ end
 
 -- function to see Active Quest in the GUI
 function questManager:SetActiveQuest(playerId)
-    local player = game.Players:GetPlayerByUserId(playerId)
-    local playerQuests = questManager:GetQuestForPlayer(playerId)
-    local activeQuestFrame = player.PlayerGui.QuestSystem.ActiveQuest
+	local player = game.Players:GetPlayerByUserId(playerId)
+	local playerQuests = questManager:GetQuestForPlayer(playerId)
+	local activeQuestFrame = player.PlayerGui.QuestSystem.ActiveQuest
 	local checkIcon = activeQuestFrame.Check
-    local activeQuestText = activeQuestFrame.Holder.ActiveQuest
-    local progressText = activeQuestFrame.Progress
+	local activeQuestText = activeQuestFrame.Holder.ActiveQuest
+	local progressText = activeQuestFrame.Progress
 
 	checkIcon.Visible = false
-    
-    -- Check for completed but unclaimed quest
-    for _, questData in ipairs(playerQuests) do
-        if questData.completed and not questData.claimed then
-            activeQuestText.Text = questData.questName
-            progressText.Text = tostring(questData.progress) .. " / " .. tostring(questData.questObjective)
-            activeQuestFrame.Visible = true
+
+	-- Check for completed but unclaimed quest
+	for _, questData in ipairs(playerQuests) do
+		if questData.completed and not questData.claimed then
+			activeQuestText.Text = questData.questName
+			progressText.Text = tostring(questData.progress) .. " / " .. tostring(questData.questObjective)
+			activeQuestFrame.Visible = true
 			checkIcon.Visible = true
-            return
-        end
-    end
-    
-    -- Check for incomplete quest with progress
-    for _, questData in ipairs(playerQuests) do
-        if questData.progress > 0 and questData.progress < questData.questObjective and not questData.completed then
-            activeQuestText.Text = questData.questName
-            progressText.Text = tostring(questData.progress) .. " / " .. tostring(questData.questObjective)
-            activeQuestFrame.Visible = true
-            return
-        end
-    end
+			return
+		end
+	end
+
+	-- Check for incomplete quest with progress
+	for _, questData in ipairs(playerQuests) do
+		if questData.progress > 0 and questData.progress < questData.questObjective and not questData.completed then
+			activeQuestText.Text = questData.questName
+			progressText.Text = tostring(questData.progress) .. " / " .. tostring(questData.questObjective)
+			activeQuestFrame.Visible = true
+			return
+		end
+	end
 
 	-- check for quests that are not completed
 	for _, questData in ipairs(playerQuests) do
@@ -271,10 +271,10 @@ function questManager:SetActiveQuest(playerId)
 			return
 		end
 	end
-    
-    -- Hide the ActiveQuest frame if no appropriate quest found
+
+	-- Hide the ActiveQuest frame if no appropriate quest found
 	warn("No Quest Found")
-    activeQuestFrame.Visible = false
+	activeQuestFrame.Visible = false
 end
 
 
@@ -386,9 +386,20 @@ claimQuest.OnServerEvent:Connect(function(player, questId, reward)
 			if questData:GetAttribute("reward2") then
 				PlayerManager.SetSoul(player, PlayerManager.GetSoul(player) + questData:GetAttribute("reward2"))
 			end
-			
+
 			if questData:GetAttribute("reward3") == true then
-				--guardianBindableEvent:Fire(player, getRandomItem)
+				local guardianfolder = game:GetService("ReplicatedStorage").GuardianFolder
+				local checkTable = {}
+
+				for i, v in ipairs(guardianfolder:GetChildren()) do
+					if v:IsA("Model") then
+						table.insert(checkTable, v)
+					end
+				end
+
+				local getRandomItem = checkTable[math.random(1, #checkTable)]
+				
+				guardianBindableEvent:Fire(player, getRandomItem)
 			end
 		end
 	end
