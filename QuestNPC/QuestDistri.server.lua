@@ -4,6 +4,7 @@ local RS = game:GetService("ReplicatedStorage")
 
 local QuestDictionary = require(script.QuestDictionary)
 local QM = require(SSS.QuestSystem.QuestInit.QuestManager)
+local PM = require(game:GetService("ServerScriptService"):WaitForChild("PlayerManager"))
 
 local questIndicatorMesh = RS.QuestSystem.QuestGUI
 
@@ -27,12 +28,13 @@ function QuestNpc.new(instance, name)
 	questIndicatorMeshClone.Position = self.QuestNPC.HumanoidRootPart.Position
 	questIndicatorMeshClone.Position = Vector3.new(questIndicatorMeshClone.Position.X, self.QuestNPC.LeftFoot.Position.Y, questIndicatorMeshClone.Position.Z)
 
-	self:SetQuestAttribute()
-
 	self.Prompt = self:CreatePrompt()
 	self.ConnTrigger = self.Prompt.TriggerEnded:Connect(function(plr)
 		local playerId = plr.UserId
-		local getTagged = collectionService:GetTagged("Quest")
+		local getTagged = collectionService:GetTagged("TALK_NPC")
+		local playerQuest = plr:WaitForChild("Quests"):GetAttribute("QuestLevel")
+		self:SetQuestAttribute(playerQuest)
+		print(playerQuest)
 
 		if table.find(getTagged, self.QuestNPC) then
 			event:Fire(plr, playerId)
@@ -46,19 +48,11 @@ function QuestNpc.new(instance, name)
 	return self
 end
 
-function QuestNpc:SetQuestAttribute()
-	self.QuestNPC:SetAttribute("questName", QuestDictionary[self.NPCName][1]["questName"])
-	self.QuestNPC:SetAttribute("questObjective", QuestDictionary[self.NPCName][1]["questObjective"])
-	self.QuestNPC:SetAttribute("completed", QuestDictionary[self.NPCName][1]["completed"])
-	self.QuestNPC:SetAttribute("questCriteria", QuestDictionary[self.NPCName][1]["questCriteria"])
-	self.QuestNPC:SetAttribute("questTarget", QuestDictionary[self.NPCName][1]["questTarget"])
-	self.QuestNPC:SetAttribute("questType", QuestDictionary[self.NPCName][1]["questType"])
-	self.QuestNPC:SetAttribute("questrepeat", QuestDictionary[self.NPCName][1]["questrepeat"])
-	self.QuestNPC:SetAttribute("reward1", QuestDictionary[self.NPCName][1]["reward1"])
-	self.QuestNPC:SetAttribute("reward2", QuestDictionary[self.NPCName][1]["reward2"])
-	self.QuestNPC:SetAttribute("reward3", QuestDictionary[self.NPCName][1]["reward3"])
-	self.QuestNPC:SetAttribute("questDialog", QuestDictionary[self.NPCName][1]["questDialog"])
-	self.QuestNPC:SetAttribute("questLevel", QuestDictionary[self.NPCName][1]["questLevel"])
+function QuestNpc:SetQuestAttribute(playerQuestLevel)
+	local questData = QuestDictionary[self.NPCName][playerQuestLevel] or QuestDictionary[self.NPCName][#QuestDictionary[self.NPCName]]
+	for key, value in pairs(questData) do
+		self.QuestNPC:SetAttribute(key, value)
+	end
 end
 
 function QuestNpc:CreatePrompt()

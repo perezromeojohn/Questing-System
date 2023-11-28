@@ -1,8 +1,8 @@
 local Players = game:GetService("Players")
 local DataStoreService = game:GetService("DataStoreService")
 local httpService = game:GetService("HttpService")
---local PlayerData = DataStoreService:GetDataStore("ProjectIsekai-StagingTest-B-008")
-local PlayerData = DataStoreService:GetDataStore("Romeo-030")
+local PlayerData = DataStoreService:GetDataStore("ProjectIsekai-StagingTest-B-016")
+--local PlayerData = DataStoreService:GetDataStore("Romeo-040")
 
 local SSS = game:GetService("ServerScriptService")
 
@@ -166,10 +166,11 @@ local function CosmeticsInventory(player, head, back, body, hand, feet, cosmetic
 	return cosmetics
 end
 
-local function QuestData(player, val)
+local function QuestData(player, val, questLvl)
 	--local QM = require(SSS.QuestSystem.QuestInit.QuestManager)
 	local Quests = Instance.new("Folder", player)
 	Quests.Name = "Quests"
+	Quests:SetAttribute("QuestLevel", questLvl)
 
 	-- if player has no quest data, return
 	if not val then
@@ -252,7 +253,8 @@ function PlayerManager.OnPlayerAdded(player)
 		PlayerStats = {},
 
 		PlayerQuestData = {},
-
+		PlayerQuestLevel = 0,
+		
 		TycoonChest = {},
 	}
 
@@ -296,7 +298,8 @@ function PlayerManager.OnPlayerAdded(player)
 
 	QuestData(
 		player,
-		PlayerManager.GetQuestData(player)
+		PlayerManager.GetQuestData(player),
+		PlayerManager.GetQuestLevel(player)
 	)
 
 	playerAdded:Fire(player)
@@ -771,7 +774,10 @@ function PlayerManager.AddCosmeticInv(player, genId, cosmeticName)
 	local cosmeticInstance
 
 	for i,v in ipairs(game:GetService("ReplicatedStorage"):WaitForChild("CosmeticStorage"):GetDescendants()) do
-		if v.Name == cosmeticName then
+		if v.Name == cosmeticName and v:IsA("Accessory") then
+			inStorage = true
+			cosmeticInstance = v
+		elseif v.Name == cosmeticName and v:isA("Folder") then
 			inStorage = true
 			cosmeticInstance = v
 		end
@@ -862,7 +868,6 @@ function PlayerManager.SetQuestData(player, val)
 	if questData then
 		local questsInstance = questData:FindFirstChild(val.questId)
 		if questsInstance then
-			warn("Already In Quest")
 		else
 			local stringVal = Instance.new("StringValue", questData)
 			stringVal.Name = val.questId
@@ -870,6 +875,20 @@ function PlayerManager.SetQuestData(player, val)
 			for aName, aVal in pairs(val) do
 				stringVal:SetAttribute(aName,aVal)
 			end
+		end
+	end
+end
+
+function PlayerManager.GetQuestLevel(player)
+	return sessionData[player.UserId].PlayerQuestLevel
+end
+
+function PlayerManager.SetQuestLevel(player, val)
+	if val then
+		sessionData[player.UserId].PlayerQuestLevel += 1
+		local quest = player:FindFirstChild("Quests")
+		if quest then
+			quest:SetAttribute("QuestLevel", sessionData[player.UserId].PlayerQuestLevel)
 		end
 	end
 end
