@@ -97,6 +97,7 @@ end
 -- Function to create the GUI for a player's quest
 function questManager:CreateGUI(playerId, questData)
 	local player = game.Players:GetPlayerByUserId(playerId)
+	-- frame
 	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.ActiveFrame
 
 	if questData.claimed ~= true  then

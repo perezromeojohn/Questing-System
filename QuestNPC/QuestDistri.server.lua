@@ -34,7 +34,6 @@ function QuestNpc.new(instance, name)
 		local getTagged = collectionService:GetTagged("TALK_NPC")
 		local playerQuest = plr:WaitForChild("Quests"):GetAttribute("QuestLevel")
 		self:SetQuestAttribute(playerQuest)
-		print(playerQuest)
 
 		if table.find(getTagged, self.QuestNPC) then
 			event:Fire(plr, playerId)
