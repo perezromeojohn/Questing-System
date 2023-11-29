@@ -28,10 +28,9 @@ local playerQuests = {}
 
 function questManager:Init(player, playerId, questData)
 	local self = setmetatable({}, questManager)
-	
+
 	self.Player = player
-	print(self.Player)
-	
+
 	if playerQuests[playerId] == nil then
 		playerQuests[playerId] = {} -- Initialize as an empty table only if it's nil
 	end
@@ -42,12 +41,11 @@ function questManager:Init(player, playerId, questData)
 		table.insert(playerQuests[playerId], quest) -- Insert each quest into the existing table
 		self:SetActiveQuest(playerId)
 	end
-	print("Quests Loaded...")
-	
+
 	event.Event:Connect(function(...)
 		self:UpdateQuestProgress(...)
 	end)
-	
+
 	return self
 end
 
@@ -67,8 +65,13 @@ function questManager:CreateQuestForPlayer(playerId, questattribute)
 	questData.reward1 = questattribute["reward1"]
 	questData.reward2 = questattribute["reward2"]
 	questData.reward3 = questattribute["reward3"]
-
-
+	
+	for _, npc in ipairs(game:GetService("Workspace"):FindFirstChild("NPC"):GetChildren()) do
+		if npc:IsA("Model") and npc:GetAttribute("Name") == questattribute["Name"] then
+			npc:SetAttribute("QuestAccepted", true)
+		end
+	end
+	
 	-- Ensure playerQuests[playerId] is a table
 	if playerQuests[playerId] == nil then
 		playerQuests[playerId] = {} -- Initialize as an empty table if it's nil
@@ -76,8 +79,7 @@ function questManager:CreateQuestForPlayer(playerId, questattribute)
 
 	table.insert(playerQuests[playerId], questData) -- Insert the new quest into the existing table
 	
-	print(playerQuests[playerId])
-
+	
 	local player = game.Players:GetPlayerByUserId(playerId)
 
 	self:CreateGUI(playerId, questData)
@@ -97,18 +99,25 @@ end
 -- Function to create the GUI for a player's quest
 function questManager:CreateGUI(playerId, questData)
 	local player = game.Players:GetPlayerByUserId(playerId)
-	-- frame
-	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.ActiveFrame
-
-	if questData.claimed ~= true  then
+	
+	if questData.claimed ~= true then
 		local questHolderClone = questHolder:Clone()
-		questHolderClone.Parent = playerGui
-		questHolderClone.Name = questData.questId
-
 		local questNameLabel = questHolderClone.QuestName
 		local questObjectiveLabel = questHolderClone.ProgressBarFrame.ProgressBG.ProgressValue
 		local questObjectiveBar = questHolderClone.ProgressBarFrame.ProgressBG.ProgressFG
+		
+		if questData.questCriteria == "MainQuest" then
+			local MainFrame = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.MainQuest
 
+			questHolderClone.Parent = MainFrame
+			questHolderClone.Name = questData.questId
+		else
+			local SideFrame = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.SideQuest
+
+			questHolderClone.Parent = SideFrame
+			questHolderClone.Name = questData.questId
+		end
+		
 		questNameLabel.Text = questData.questName
 		questObjectiveLabel.Text = "0 / " .. tostring(questData.questObjective)
 		questObjectiveBar.Size = UDim2.new(0, 0, 1, 0)
@@ -138,26 +147,39 @@ function questManager:CreateGUI(playerId, questData)
 			warn("This quest has no reward!")
 		end
 	end
+	
+	
+
+	
 end
 
 -- Function to update the GUI for a player's quest
 function questManager:UpdateQuestGUI(playerId, questId, progress, questObjective, questStatus)
 	local player = game.Players:GetPlayerByUserId(playerId)
-	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.ActiveFrame
-	local questHolderClone = playerGui:FindFirstChild(questId)
+	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents
+	
+	for _, v in ipairs(playerGui:GetDescendants()) do
+		if v.Name == questId then
+			local questHolderClone = v
+			
+			local questData = {
+				Progress = tostring(progress) .. " / " .. tostring(questObjective),
+				ProgressRatio = progress / questObjective,
+				QuestStatus = questStatus,
+				PlayerID = playerId,
+				QuestID = questId,
+			}
 
-	local questData = {
-		Progress = tostring(progress) .. " / " .. tostring(questObjective),
-		ProgressRatio = progress / questObjective,
-		QuestStatus = questStatus,
-		PlayerID = playerId,
-		QuestID = questId,
-	}
-
-	-- Batch GUI updates for efficiency
-	if questHolderClone then
-		self:BatchUpdateQuestGUI(questHolderClone, questData)
+			-- Batch GUI updates for efficiency
+			if questHolderClone then
+				self:BatchUpdateQuestGUI(questHolderClone, questData)
+			end
+		end
 	end
+	
+
+	
+	
 end
 
 -- Function to update the ActiveQuest GUI
@@ -182,6 +204,9 @@ function questManager:BatchUpdateQuestGUI(questHolderClone, questData)
 	local questObjectiveLabel = questHolderClone:WaitForChild("ProgressBarFrame").ProgressBG.ProgressValue
 	local questObjectiveBar = questHolderClone:WaitForChild("ProgressBarFrame").ProgressBG.ProgressFG
 	local questClaimFrame = questHolderClone:WaitForChild("Template").ClaimFrame
+	-- get the player's starterGUI base on the questData
+	local player = game.Players:GetPlayerByUserId(questData.PlayerID)
+	local notif = player.PlayerGui:WaitForChild("QuestSystem").MainButton.Notif
 
 	-- Perform batch GUI updates
 	questObjectiveLabel.Text = questData.Progress
@@ -192,6 +217,7 @@ function questManager:BatchUpdateQuestGUI(questHolderClone, questData)
 		local claim = questClaimFrame:Clone()
 		claim.Parent =  questHolderClone:WaitForChild("ProgressBarFrame")
 		claim.Visible = true
+		notif.Visible = true
 	end
 end
 
@@ -303,13 +329,14 @@ end
 
 
 function questManager:DeletePlayerLeaderstats(playerId, questId)
+	print(questId)
 	local player = game.Players:GetPlayerByUserId(playerId)
 	local questData = self:GetQuestDataForPlayer(playerId, questId)
 	local folder = player.Quests:WaitForChild(questId)
+	
+	print(questData)
 
 	if folder then
-		--print(questData)
-		-- folder:Destroy()
 		folder:SetAttribute("claimed", true)
 		if  questData and questData.claimed == false then
 			questData.claimed = true
@@ -324,6 +351,14 @@ function questManager:DeletePlayerLeaderstats(playerId, questId)
 				questIndex = i
 				break
 			end
+			print(v)
+			print(v.questSource)
+			--for _, npc in ipairs(game:GetService("Workspace"):FindFirstChild("NPC"):GetChildren()) do
+			--	print(npc)
+			--	if npc:IsA("Model") and npc:GetAttribute("Name") == v.questSource then
+			--		npc:SetAttribute("QuestAccepted", false)
+			--	end
+			--end
 		end
 
 		if questIndex then
@@ -347,11 +382,18 @@ end
 
 
 function questManager:DeleteQuestGUI(player, questId)
-	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.ActiveFrame
-	local questHolderClone = playerGui:FindFirstChild(questId)
-	if questHolderClone then
-		questHolderClone:Destroy()
+	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents
+	
+	for _, v in ipairs(playerGui:GetDescendants()) do
+		if v.Name == questId then
+			local questHolderClone = v
+			
+			if questHolderClone then
+				questHolderClone:Destroy()
+			end
+		end
 	end
+	
 end
 
 -- Function to generate a unique identifier for a quest
@@ -363,40 +405,25 @@ end
 -- Function to update progress for KILL_MOBS quests
 function questManager:UpdateQuestProgress(player, playerId, questId, progress, questType, targetName) -- arguments has value
 	for _, questData in ipairs(playerQuests[playerId]) do
-		if questData.completed == true and questData.questId ~= questId then return end
-		
-		if questData.questId == questId and player == self.Player then
+		if questData.questId == questId and player == self.Player and questData.completed ~= true then
 			if questData.questTarget == targetName then
 				questData.progress = questData.progress + progress
-				print(questData.progress)
 				self:UpdatePlayerLeaderStats(playerId, questId)
 			end
 		end
 	end
 end
 
--- Function to update progress for GET_COINS quests
---function questManager:UpdateGetCoinsQuestProgress(playerId, questId, coinsCollected)
---	for _, questData in ipairs(playerQuests[playerId]) do
---		if questData.questId == questId then
---			if questData.questType == QUEST_TYPES.GET_COINS then
---				questData.progress = questData.progress + coinsCollected
---				self:UpdatePlayerLeaderStats(playerId, questId)
---			end
+-- remove GUI
+--function questManager:RemoveGUI(playerId)
+--	local player = game.Players:GetPlayerByUserId(playerId)
+--	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.MainQuest
+--	for _, v in ipairs(playerGui:GetChildren()) do
+--		if v.Name ~= "UIGridLayout" then
+--			v:Destroy()
 --		end
 --	end
 --end
-
--- remove GUI
-function questManager:RemoveGUI(playerId)
-	local player = game.Players:GetPlayerByUserId(playerId)
-	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.ActiveFrame
-	for _, v in ipairs(playerGui:GetChildren()) do
-		if v.Name ~= "UIGridLayout" then
-			v:Destroy()
-		end
-	end
-end
 
 -- server events
 claimQuest.OnServerEvent:Connect(function(player, questId, reward)
@@ -429,7 +456,7 @@ claimQuest.OnServerEvent:Connect(function(player, questId, reward)
 			-- if questdata is MainQuest then print "Next Quest"
 			if questData:GetAttribute("questCriteria") == "MainQuest" then
 				PlayerManager.SetQuestLevel(player, 1)
-				print("Next Quest")
+				-- print("Next Quest")
 			end
 		end
 	end
