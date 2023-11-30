@@ -43,12 +43,12 @@ function QuestNpc.new(instance, name)
 			QuestDialogRemote:FireClient(plr, playerId, self.NPCName, self.QuestNPC:GetAttributes())
 		end
 	end)
-
 	return self
 end
 
 function QuestNpc:SetQuestAttribute(playerQuestLevel)
 	local questData = QuestDictionary[self.NPCName][playerQuestLevel] or QuestDictionary[self.NPCName][#QuestDictionary[self.NPCName]]
+	
 	for key, value in pairs(questData) do
 		self.QuestNPC:SetAttribute(key, value)
 	end
