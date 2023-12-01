@@ -47,7 +47,13 @@ function QuestNpc.new(instance, name)
 end
 
 function QuestNpc:SetQuestAttribute(playerQuestLevel)
-	local questData = QuestDictionary[self.NPCName][playerQuestLevel] or QuestDictionary[self.NPCName][#QuestDictionary[self.NPCName]]
+	-- 
+	local questData = QuestDictionary[self.NPCName][playerQuestLevel]
+	-- if quest data is exceeding the or QuestDictionary[self.NPCName][#QuestDictionary[self.NPCName]] then set the quest data to the last index of the QuestDictionary[self.NPCName]
+	-- quest data is not nil. never nil
+	if questData == nil then
+		questData = QuestDictionary[self.NPCName][#QuestDictionary[self.NPCName]]
+	end
 	
 	for key, value in pairs(questData) do
 		self.QuestNPC:SetAttribute(key, value)
