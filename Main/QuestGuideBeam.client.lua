@@ -5,35 +5,24 @@ local char = player.Character or player.CharacterAdded:Wait()
 local playerHRP = char:WaitForChild("HumanoidRootPart")
 local playerGui = player.PlayerGui
 
+-- remotes
+local beamEnable = RS.QuestSystem.Remotes.Beam
+
 -- beams
 local guideBeam = RS.QuestSystem.GuidingBeam
 
 -- get the player's quest list by player > Quests > get children,.now find a children that has an attribute questCriteria with a value of MainQuest and
 -- and an attribute completed with a value of false
 
-
-local function checkMainQuest()
-    local questList = player.Quests:GetChildren()
-
-    for _, quest in pairs(questList) do
-        if quest:GetAttribute("questCriteria") == "MainQuest" then
-            if quest:GetAttribute("completed") == false then
-                return false
-            elseif quest:GetAttribute("completed") == true then
-                local npcSource = quest:GetAttribute("questSource")
-                return true, npcSource
-            end
-        else
-            return false
-        end
-    end
-end
-
 -- func here grubber
-local function enableBeam()
-    -- store the return value of checkMainQuest() in a variable
-    local isMainQuest, npcSource = checkMainQuest() -- store values
-    if isMainQuest == true then
+beamEnable.OnClientEvent:Connect(function(npcSource, enable)
+    print(npcSource)
+    if npcSource == nil then
+        warn("No NPC Source")
+        return
+    end
+
+    if enable == true then
         local npc = workspace.NPC:FindFirstChild(npcSource)
         local beam = guideBeam:Clone()
 
@@ -53,8 +42,19 @@ local function enableBeam()
 
         beam.Enabled = true
     else
-        warn("No Main Quest Completed")
-    end
-end
+        local att1 = playerHRP:FindFirstChild("Att1")
+        local att2 = workspace.NPC:FindFirstChild(npcSource).HumanoidRootPart:FindFirstChild("Att2")
 
-enableBeam()
+        local beam = playerHRP:FindFirstChild("GuidingBeam")
+
+        if att1 == nil or att2 == nil or beam == nil then
+            warn("No attachments or beam found")
+            return
+        end
+
+        att1:Destroy()
+        att2:Destroy()
+        beam:Destroy()
+    end
+end)
+

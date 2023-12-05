@@ -18,6 +18,8 @@ local notifQuest = RS.QuestSystem.Remotes.Notif
 local createQuest = RS.QuestSystem.Remotes.CreateQuest
 local event = RS.QuestSystem.Remotes.UpdateQuestProg
 
+local beamEnable = RS.QuestSystem.Remotes.Beam
+
 local QUEST_TYPES = QuestTypes
 
 local function GenerateUniqueId()
@@ -296,6 +298,7 @@ function questManager:UpdatePlayerLeaderStats(playerId, questId)
 			questData.completed = true
 			folder:WaitForChild(questId):SetAttribute("completed", questData.completed)
 			notifQuest:FireClient(player, "Quest Completed!")
+			beamEnable:FireClient(player, questData.questSource, true)
 		end
 		PlayerManager.SetQuestData(player, questData)
 	end
@@ -321,6 +324,7 @@ function questManager:SetActiveQuest(playerId)
 				progressText.Text = tostring(questData.progress) .. " / " .. tostring(questData.questObjective)
 				activeQuestFrame.Visible = true
 				checkIcon.Visible = true
+				beamEnable:FireClient(player, questData.questSource, true)
 				return
 			end
 		end
@@ -381,7 +385,6 @@ function questManager:DeletePlayerLeaderstats(playerId, questId)
 		if playerQuests[playerId] then
 			playerQuests[playerId][questId] = nil
 		end
-
 
 		PlayerManager.SetQuestData(player, questData)
 		self:DeleteQuestGUI(player, questId)
@@ -450,14 +453,11 @@ function questManager:onServerEvent(player, questId, reward)
 			-- if questdata is MainQuest then print "Next Quest"
 			if questData:GetAttribute("questCriteria") == "MainQuest" then
 				PlayerManager.SetQuestLevel(player, 1)
+				beamEnable:FireClient(player, questData:GetAttribute("questSource"), false)
 				print("Next Quest")
 			end
 		end
-		
-		
 	end
-
-	
 end
 
 return questManager
