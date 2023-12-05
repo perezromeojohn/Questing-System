@@ -298,7 +298,9 @@ function questManager:UpdatePlayerLeaderStats(playerId, questId)
 			questData.completed = true
 			folder:WaitForChild(questId):SetAttribute("completed", questData.completed)
 			notifQuest:FireClient(player, "Quest Completed!")
-			beamEnable:FireClient(player, questData.questSource, true)
+			if questData.questCriteria == "MainQuest" then
+				beamEnable:FireClient(player, questData.questSource, true, questData.questCriteria)
+			end
 		end
 		PlayerManager.SetQuestData(player, questData)
 	end
@@ -324,7 +326,7 @@ function questManager:SetActiveQuest(playerId)
 				progressText.Text = tostring(questData.progress) .. " / " .. tostring(questData.questObjective)
 				activeQuestFrame.Visible = true
 				checkIcon.Visible = true
-				beamEnable:FireClient(player, questData.questSource, true)
+				beamEnable:FireClient(player, questData.questSource, true, questData.questCriteria)
 				return
 			end
 		end
@@ -453,9 +455,10 @@ function questManager:onServerEvent(player, questId, reward)
 			-- if questdata is MainQuest then print "Next Quest"
 			if questData:GetAttribute("questCriteria") == "MainQuest" then
 				PlayerManager.SetQuestLevel(player, 1)
-				beamEnable:FireClient(player, questData:GetAttribute("questSource"), false)
 				print("Next Quest")
 			end
+
+			beamEnable:FireClient(player, questData:GetAttribute("questSource"), false, questData:GetAttribute("questCriteria"))
 		end
 	end
 end

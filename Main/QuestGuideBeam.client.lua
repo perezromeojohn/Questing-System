@@ -15,46 +15,50 @@ local guideBeam = RS.QuestSystem.GuidingBeam
 -- and an attribute completed with a value of false
 
 -- func here grubber
-beamEnable.OnClientEvent:Connect(function(npcSource, enable)
-    print(npcSource)
-    if npcSource == nil then
-        warn("No NPC Source")
-        return
-    end
+beamEnable.OnClientEvent:Connect(function(npcSource, enable, questCriteria)
+	if npcSource == nil then
+		warn("No NPC Source")
+		return
+	end
 
-    if enable == true then
-        local npc = workspace.NPC:FindFirstChild(npcSource)
-        local beam = guideBeam:Clone()
+	if questCriteria ~= "MainQuest" then
+		warn("Quest criteria is not MainQuest")
+		return
+	end
 
-        local npcHRP = npc:WaitForChild("HumanoidRootPart")
+	if enable == true then
+		local npc = workspace.NPC:FindFirstChild(npcSource)
+		local beam = guideBeam:Clone()
 
-        local att1 = Instance.new("Attachment")
-        att1.Name = "Att1"
-        att1.Parent = playerHRP
+		local npcHRP = npc:WaitForChild("HumanoidRootPart")
 
-        local att2 = Instance.new("Attachment")
-        att2.Name = "Att2"
-        att2.Parent = npcHRP
+		local att1 = Instance.new("Attachment")
+		att1.Name = "Att1"
+		att1.Parent = playerHRP
 
-        beam.Parent = playerHRP
-        beam.Attachment0 = att1
-        beam.Attachment1 = att2
+		local att2 = Instance.new("Attachment")
+		att2.Name = "Att2"
+		att2.Parent = npcHRP
 
-        beam.Enabled = true
-    else
-        local att1 = playerHRP:FindFirstChild("Att1")
-        local att2 = workspace.NPC:FindFirstChild(npcSource).HumanoidRootPart:FindFirstChild("Att2")
+		beam.Parent = playerHRP
+		beam.Attachment0 = att1
+		beam.Attachment1 = att2
 
-        local beam = playerHRP:FindFirstChild("GuidingBeam")
+		beam.Enabled = true
+	else
+		local att1 = playerHRP:FindFirstChild("Att1")
+		local att2 = workspace.NPC:FindFirstChild(npcSource).HumanoidRootPart:FindFirstChild("Att2")
 
-        if att1 == nil or att2 == nil or beam == nil then
-            warn("No attachments or beam found")
-            return
-        end
+		local beam = playerHRP:FindFirstChild("GuidingBeam")
 
-        att1:Destroy()
-        att2:Destroy()
-        beam:Destroy()
-    end
+		if att1 == nil or att2 == nil or beam == nil then
+			warn("No attachments or beam found")
+			return
+		end
+
+		att1:Destroy()
+		att2:Destroy()
+		beam:Destroy()
+	end
 end)
 
