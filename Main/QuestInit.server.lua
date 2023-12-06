@@ -24,6 +24,11 @@ Player.PlayerAdded:Connect(function(player)
 			-- 	end
 			-- end
 
+			-- if player has no quest. print ("dog")
+			if #playerQuests == 0 and Quests:GetAttribute("QuestLevel") == 0 then
+				print("dog")
+			end
+
 			new:Init()
 		end
 	end)
