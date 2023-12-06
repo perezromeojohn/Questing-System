@@ -3,6 +3,7 @@ local dataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
 local RS = game:GetService("ReplicatedStorage")
 local TS = game:GetService("TweenService")
+local SSS = game:GetService("ServerScriptService")
 
 -- GUI STUFF
 local questHolder = RS.QuestSystem.GUI.QuestHolder
@@ -11,6 +12,7 @@ local questHolder = RS.QuestSystem.GUI.QuestHolder
 local PlayerManager = require(game:GetService("ServerScriptService"):WaitForChild("PlayerManager"))
 local QuestData = require(script.Parent.QuestData)
 local QuestTypes = require(script.Parent.QuestTypes)
+local QuestTutorial = require(SSS.QuestSystem:WaitForChild("QuestDistri"):WaitForChild("QuestTutorial"))
 
 -- remotes and stuff
 local claimQuest = RS.QuestSystem.Remotes.ClaimQuest
@@ -42,8 +44,8 @@ function questManager.new(player, playerId, questData)
 	self.questData = questData
 	self.playerId = playerId
 
-	self.BindableEvent = event.Event:Connect(function(player, playerId, questId, name)
-		self:UpdateQuestProgress(player, playerId, questId, name)
+	self.BindableEvent = event.Event:Connect(function(...)
+		self:UpdateQuestProgress(...)
 		--task.wait(0.2)
 		--self:onServerEvent(player, questId, name)
 	end)
@@ -61,7 +63,7 @@ function questManager.new(player, playerId, questData)
 end
 
 function questManager:Init()
-	
+
 	if playerQuests[self.playerId] == nil then
 		playerQuests[self.playerId] = {} -- Initialize as an empty table only if it's nil
 	end
@@ -72,58 +74,6 @@ function questManager:Init()
 		table.insert(playerQuests[self.playerId], quest) -- Insert each quest into the existing table
 		self:SetActiveQuest(self.playerId)
 	end
-end
-
-function questManager:OnCharacterAdded(player, playerId)
-	for _, quest in pairs(self.questData) do
-		if quest.questId == 1 then
-			return
-		end
-	end
-	
-	local firstQuest = {
-		questObjective = 1,
-		completed = false,
-		questName = "Talk to Orcbolg",
-		questCriteria = "MainQuest",
-		questTarget = "Orcbolg",
-		questrepeat = false,
-		questType = "TALK_NPC",
-		reward1 = 100,
-		reward2 = 0,
-		reward3 = 0,
-	}
-	
-	local questData = QuestData.new()
-	questData.questId = 1
-	questData.questSource = nil
-	questData.questName = firstQuest["questName"]
-	questData.questCriteria = firstQuest["questCriteria"]
-	questData.questType = firstQuest["questType"]
-	questData.questObjective = firstQuest["questObjective"] 
-	questData.questTarget = firstQuest["questTarget"]
-	questData.progress = 0
-	questData.completed = firstQuest["completed"]
-	questData.claimed = false
-	questData.questrepeat = firstQuest["questrepeat"]
-	questData.reward1 = firstQuest["reward1"]
-	questData.reward2 = firstQuest["reward2"]
-	questData.reward3 = firstQuest["reward3"]
-	
-	if playerQuests[playerId] == nil then
-		playerQuests[playerId] = {} -- Initialize as an empty table if it's nil
-	end
-	
-	table.insert(playerQuests[playerId], questData)-- Insert the new quest into the existing table
-
-	local player = game.Players:GetPlayerByUserId(playerId)
-
-	self:SetActiveQuest(playerId)
-
-	-- Save
-	PlayerManager.SetQuestData(player, questData)
-
-	notifQuest:FireClient(player, "New Quest!")
 end
 
 function questManager:CreateQuestForPlayer(player, playerId, questattribute)
@@ -182,13 +132,12 @@ function questManager:CreateGUI(playerId, questData)
 
 		if questData.questCriteria == "MainQuest" then
 			local MainFrame = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.MainQuest
-			
-				questHolderClone.Parent = MainFrame
-				questHolderClone.Name = questData.questId
+			questHolderClone.Parent = MainFrame
+			questHolderClone.Name = questData.questId
 		else
 			local SideFrame = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.SideQuest
-				questHolderClone.Parent = SideFrame
-				questHolderClone.Name = questData.questId
+			questHolderClone.Parent = SideFrame
+			questHolderClone.Name = questData.questId
 		end
 
 		questNameLabel.Text = questData.questName
@@ -450,7 +399,7 @@ end
 
 function questManager:DeleteQuestGUI(player, questId)
 	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents
-	
+
 	for _, v in ipairs(playerGui:GetDescendants()) do
 		if v.Name == questId then
 			local questHolderClone = v
