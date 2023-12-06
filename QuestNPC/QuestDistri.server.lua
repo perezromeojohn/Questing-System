@@ -30,17 +30,23 @@ function QuestNpc.new(instance, name)
 end
 
 function QuestNpc:Init()
+	self.Prompt = self:CreatePrompt()
+	
 	self.PlayerAdded = game:GetService("Players").PlayerAdded:Connect(function(plr)
+		local playerQuest = plr:WaitForChild("Quests")
+		
 		self:SetQuestAttribute(plr)
 		self:CheckIndicator(plr)
+		
+		playerQuest:GetAttributeChangedSignal("QuestLevel"):Connect(function()
+			self:SetQuestAttribute(plr)
+			self:CheckIndicator(plr)
+		end)
 	end)
 	
-	self.Prompt = self:CreatePrompt()
+	
 	self.ConnTrigger = self.Prompt.TriggerEnded:Connect(function(plr)
-		
-		
 		self:SetQuestAttribute(plr)
-		
 		task.wait(0.1)
 		self:OnTriggered(plr)
 	end)
@@ -55,6 +61,8 @@ function QuestNpc:QuestIndicator()
 
 	if self.QuestType == "MainQuest" then
 		questIndicator.ImageColor3 = Color3.fromRGB(245, 135, 0)
+	elseif self.QuestType == "TutorialQuest" then
+		questIndicator.ImageColor3 = Color3.fromRGB(255, 0, 98)
 	else
 		questIndicator.ImageColor3 = Color3.fromRGB(13, 255, 0)
 	end
@@ -66,6 +74,8 @@ function QuestNpc:QuestIndicator()
 		else
 			if self.QuestType == "MainQuest" then
 				questIndicator.ImageColor3 = Color3.fromRGB(245, 135, 0)
+			elseif self.QuestType == "TutorialQuest" then
+				questIndicator.ImageColor3 = Color3.fromRGB(255, 0, 98)
 			else
 				questIndicator.ImageColor3 = Color3.fromRGB(13, 255, 0)
 			end
@@ -96,7 +106,7 @@ function QuestNpc:OnTriggered(plr)
 
 	if table.find(getTagged, self.QuestNPC) then
 		event:Fire(plr, playerId)
-		QuestDialogRemote:FireClient(plr, playerId, self.NPCName, self.QuestNPC:GetAttributes())
+		--QuestDialogRemote:FireClient(plr, playerId, self.NPCName, self.QuestNPC:GetAttributes())
 	else
 		QuestDialogRemote:FireClient(plr, playerId, self.NPCName, self.QuestNPC:GetAttributes())
 	end
@@ -104,11 +114,31 @@ end
 
 function QuestNpc:SetQuestAttribute(plr)
 	local playerQuest = plr:WaitForChild("Quests"):GetAttribute("QuestLevel")
+	local count = {}
+	
 	if self.QuestType == "MainQuest" then
-		local questData = QuestDictionary[self.Area][self.NPCName][playerQuest] or QuestDictionary[self.Area][self.NPCName][#QuestDictionary[self.NPCName]]
-		for key, value in pairs(questData) do
-			self.QuestNPC:SetAttribute(key, value)
+		local data = QuestDictionary[self.Area][self.NPCName]
+	
+		if not data then return end
+		
+		for i,v in pairs(data) do
+			print(v)
+			table.insert(count, v)
 		end
+		
+		if playerQuest >= #count then
+			print("pasok here")
+			self:CleanUp()
+		end
+	
+		local questData = QuestDictionary[self.Area][self.NPCName][playerQuest] --or QuestDictionary[self.Area][self.NPCName][#QuestDictionary[self.NPCName]]
+		
+		if questData then
+			for key, value in pairs(questData) do
+				self.QuestNPC:SetAttribute(key, value)
+			end
+		end
+		
 	else
 		local questData = QuestDictionary[self.Area][self.NPCName]
 		for key, value in pairs(questData) do
@@ -127,25 +157,32 @@ function QuestNpc:CreatePrompt()
 	return prompt
 end
 
+function QuestNpc:CleanUp()
+	self.QuestNPC:FindFirstChild("QuestGUI").QuestGUI:Destroy()
+	self.QuestNPC:FindFirstChild("ProximityPrompt"):Destroy()
+	collectionService:RemoveTag(self.QuestNPC, "QuestNpc")
+	
+end
+
 local instances = {}
 
 local AddInstance = collectionService:GetInstanceAddedSignal(QuestNpc.TagName)
-local RemoveInstance = collectionService:GetInstanceRemovedSignal(QuestNpc.TagName)
+--local RemoveInstance = collectionService:GetInstanceRemovedSignal(QuestNpc.TagName)
 
 local function onInstanceAdded(instance)
 	instances[instance] = QuestNpc.new(instance, instance:GetAttribute("Name"))
 end
 
-local function onInstanceRemove(instance)
-	if instances[instance] then
-		instances[instance]:Cleanup()
-		instances[instance] = nil
-	end
-end
+--local function onInstanceRemove(instance)
+--	if instances[instance] then
+--		instances[instance]:Cleanup()
+--		instances[instance] = nil
+--	end
+--end
 
 for _, instance in pairs(collectionService:GetTagged(QuestNpc.TagName)) do
 	onInstanceAdded(instance)
 end
 
 AddInstance:Connect(onInstanceAdded)
-RemoveInstance:Connect(onInstanceRemove)
+--RemoveInstance:Connect(onInstanceRemove)
