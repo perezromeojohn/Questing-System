@@ -3,6 +3,7 @@ local SSS = game:GetService("ServerScriptService")
 local RS = game:GetService("ReplicatedStorage")
 
 local QuestDictionary = require(script.QuestDictionary)
+local QuestTutorialDictionary = require(script.Parent.QuestInit.QuestTutorial)
 local QM = require(SSS.QuestSystem.QuestInit.QuestManager)
 local PM = require(game:GetService("ServerScriptService"):WaitForChild("PlayerManager"))
 
@@ -23,34 +24,32 @@ function QuestNpc.new(instance, name)
 	self.NPCName = name
 	self.QuestType = instance:GetAttribute("QuestType")
 	self.Area = instance:GetAttribute("Area")
-	
+
 	self:Init()
-	
+
 	return self
 end
 
 function QuestNpc:Init()
 	self.Prompt = self:CreatePrompt()
-	
+
 	self.PlayerAdded = game:GetService("Players").PlayerAdded:Connect(function(plr)
 		local playerQuest = plr:WaitForChild("Quests")
-		
+
 		self:SetQuestAttribute(plr)
 		self:CheckIndicator(plr)
-		
+
 		playerQuest:GetAttributeChangedSignal("QuestLevel"):Connect(function()
 			self:SetQuestAttribute(plr)
-			self:CheckIndicator(plr)
 		end)
 	end)
-	
-	
+
 	self.ConnTrigger = self.Prompt.TriggerEnded:Connect(function(plr)
 		self:SetQuestAttribute(plr)
 		task.wait(0.1)
 		self:OnTriggered(plr)
 	end)
-	
+
 	self:QuestIndicator()
 end
 
@@ -79,7 +78,7 @@ function QuestNpc:QuestIndicator()
 			else
 				questIndicator.ImageColor3 = Color3.fromRGB(13, 255, 0)
 			end
-			
+
 			questIndicatorMeshClone.QuestGUI.Sign.Text = "!"
 		end
 	end)
@@ -92,7 +91,7 @@ end
 
 function QuestNpc:CheckIndicator(plr)
 	local questsFolder = plr:FindFirstChild("Quests")
-	
+
 	for _, questData in ipairs(questsFolder:GetChildren()) do
 		if questData:GetAttribute("questSource") == self.NPCName and questData:GetAttribute("claimed") == false then
 			self.QuestNPC:SetAttribute("QuestAccepted", true)
@@ -106,7 +105,8 @@ function QuestNpc:OnTriggered(plr)
 
 	if table.find(getTagged, self.QuestNPC) then
 		event:Fire(plr, playerId)
-		--QuestDialogRemote:FireClient(plr, playerId, self.NPCName, self.QuestNPC:GetAttributes())
+		task.wait(0.1)
+		QuestDialogRemote:FireClient(plr, playerId, self.NPCName, self.QuestNPC:GetAttributes())
 	else
 		QuestDialogRemote:FireClient(plr, playerId, self.NPCName, self.QuestNPC:GetAttributes())
 	end
@@ -115,30 +115,47 @@ end
 function QuestNpc:SetQuestAttribute(plr)
 	local playerQuest = plr:WaitForChild("Quests"):GetAttribute("QuestLevel")
 	local count = {}
-	
+
 	if self.QuestType == "MainQuest" then
 		local data = QuestDictionary[self.Area][self.NPCName]
-	
+
 		if not data then return end
-		
+
 		for i,v in pairs(data) do
-			print(v)
 			table.insert(count, v)
 		end
-		
-		if playerQuest >= #count then
-			print("pasok here")
+
+		if playerQuest > #count then
 			self:CleanUp()
 		end
-	
+
 		local questData = QuestDictionary[self.Area][self.NPCName][playerQuest] --or QuestDictionary[self.Area][self.NPCName][#QuestDictionary[self.NPCName]]
-		
+
 		if questData then
 			for key, value in pairs(questData) do
 				self.QuestNPC:SetAttribute(key, value)
 			end
 		end
-		
+	elseif self.QuestType == "TutorialQuest" then
+		local data = QuestTutorialDictionary[self.NPCName]
+
+		if not data then return end
+
+		for i,v in pairs(data) do
+			table.insert(count, v)
+		end
+
+		if playerQuest > #count then
+			self:CleanUp()
+		end
+
+		local questData = QuestDictionary[self.NPCName][playerQuest]
+
+		if questData then
+			for key, value in pairs(questData) do
+				self.QuestNPC:SetAttribute(key, value)
+			end
+		end
 	else
 		local questData = QuestDictionary[self.Area][self.NPCName]
 		for key, value in pairs(questData) do
@@ -161,7 +178,6 @@ function QuestNpc:CleanUp()
 	self.QuestNPC:FindFirstChild("QuestGUI").QuestGUI:Destroy()
 	self.QuestNPC:FindFirstChild("ProximityPrompt"):Destroy()
 	collectionService:RemoveTag(self.QuestNPC, "QuestNpc")
-	
 end
 
 local instances = {}

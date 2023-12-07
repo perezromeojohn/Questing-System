@@ -12,7 +12,7 @@ local questHolder = RS.QuestSystem.GUI.QuestHolder
 local PlayerManager = require(game:GetService("ServerScriptService"):WaitForChild("PlayerManager"))
 local QuestData = require(script.Parent.QuestData)
 local QuestTypes = require(script.Parent.QuestTypes)
---local QuestTutorial = require(SSS.QuestSystem:WaitForChild("QuestDistri"):WaitForChild("QuestTutorial"))
+local QuestTutorial = require(script.Parent.QuestTutorial)
 
 -- remotes and stuff
 local claimQuest = RS.QuestSystem.Remotes.ClaimQuest
@@ -79,7 +79,7 @@ function questManager:TutorialChecker(player)
 	local quests = player.Quests
 
 	for _,v in ipairs(quests:GetChildren()) do
-		if v:GetAttribute("isTutorial") == true then
+		if v:GetAttribute("questCriteria") == "TutorialQuest" then
 			self:onServerEvent(player, v:GetAttribute("questId"))
 		end
 	end
@@ -111,7 +111,6 @@ function questManager:OnCharacterAdded(player, playerId, questTutorial)
 	questData.reward1 = questTutorial[questLevel].reward1
 	questData.reward2 = questTutorial[questLevel].reward2
 	questData.reward3 = questTutorial[questLevel].reward3
-	questData.isTutorial = questTutorial[questLevel].isTutorial
 
 	for _, npc in ipairs(game:GetService("Workspace"):FindFirstChild("NPC"):GetChildren()) do
 		if npc:IsA("Model") and npc:GetAttribute("Name") == questData.questSource then
@@ -156,7 +155,6 @@ function questManager:CreateQuestForPlayer(player, playerId, questattribute)
 	questData.reward1 = questattribute["reward1"]
 	questData.reward2 = questattribute["reward2"]
 	questData.reward3 = questattribute["reward3"]
-	questData.isTutorial = questattribute["isTutorial"]
 
 	for _, npc in ipairs(game:GetService("Workspace"):FindFirstChild("NPC"):GetChildren()) do
 		if npc:IsA("Model") and npc:GetAttribute("Name") == questattribute["Name"] then
@@ -199,7 +197,7 @@ function questManager:CreateGUI(playerId, questData)
 		local questObjectiveLabel = questHolderClone.ProgressBarFrame.ProgressBG.ProgressValue
 		local questObjectiveBar = questHolderClone.ProgressBarFrame.ProgressBG.ProgressFG
 
-		if questData.questCriteria == "MainQuest" then
+		if questData.questCriteria == "MainQuest" or questData.questCriteria == "TutorialQuest" then
 			local MainFrame = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents.MainQuest
 			questHolderClone.Parent = MainFrame
 			questHolderClone.Name = questData.questId
@@ -518,6 +516,7 @@ function questManager:onServerEvent(player, questId, guardianName)
 			
 			if questData:GetAttribute("questCriteria") == "TutorialQuest" then
 				PlayerManager.SetQuestLevel(player, 1)
+				self:OnCharacterAdded(player, player.UserId, QuestTutorial)
 				print("Next Tutorial Quest Please!")
 			end
 

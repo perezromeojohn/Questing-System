@@ -7,29 +7,28 @@ local SSS = game:GetService("ServerScriptService")
 local QM = require(script.QuestManager)
 local QD = require(script.QuestData)
 local PM = require(SSS:WaitForChild("PlayerManager"))
-local QT = require(SSS.QuestSystem:WaitForChild("QuestDistri"):WaitForChild("QuestTutorial"))
+--local QT = require(SSS.QuestSystem:WaitForChild("QuestDistri"):WaitForChild("QuestTutorial"))
 
 Player.PlayerAdded:Connect(function(player)
 	player.CharacterAdded:Connect(function(char)
 		local playerId = player.UserId
 		local Quests = player:FindFirstChild("Quests")
-		local playerQuests = player:WaitForChild("Quests"):GetChildren()
+
 		task.wait(.1)
 		if QM then
 			local new = QM.new(player, playerId, PM.GetQuestData(player))
 
-			-- if Quests then
-			-- 	if Quests:GetAttribute("QuestLevel") == 0 then
-			-- 		new:OnCharacterAdded(player, playerId)
-			-- 	end
-			-- end
-
-			-- if player has no quest. print ("dog")
-			if #playerQuests == 0 and Quests:GetAttribute("QuestLevel") == 0 then
-				print("dog")
-			end
-
 			new:Init()
+
+			task.wait(0.2)
+			if Quests then
+				if Quests:GetAttribute("QuestLevel") == 0 then
+					local questTutorial = require(script.QuestTutorial)
+					if questTutorial then
+						new:OnCharacterAdded(player, playerId, questTutorial)
+					end
+				end
+			end
 		end
 	end)
 end)
