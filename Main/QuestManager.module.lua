@@ -12,7 +12,7 @@ local questHolder = RS.QuestSystem.GUI.QuestHolder
 local PlayerManager = require(game:GetService("ServerScriptService"):WaitForChild("PlayerManager"))
 local QuestData = require(script.Parent.QuestData)
 local QuestTypes = require(script.Parent.QuestTypes)
-local QuestTutorial = require(SSS.QuestSystem:WaitForChild("QuestDistri"):WaitForChild("QuestTutorial"))
+--local QuestTutorial = require(SSS.QuestSystem:WaitForChild("QuestDistri"):WaitForChild("QuestTutorial"))
 
 -- remotes and stuff
 local claimQuest = RS.QuestSystem.Remotes.ClaimQuest
@@ -46,8 +46,7 @@ function questManager.new(player, playerId, questData)
 
 	self.BindableEvent = event.Event:Connect(function(...)
 		self:UpdateQuestProgress(...)
-		--task.wait(0.2)
-		--self:onServerEvent(player, questId, name)
+		self:TutorialChecker(...)
 	end)
 
 	self.ServerEvent = claimQuest.OnServerEvent:Connect(function(...)
@@ -76,6 +75,71 @@ function questManager:Init()
 	end
 end
 
+function questManager:TutorialChecker(player)
+	local quests = player.Quests
+
+	for _,v in ipairs(quests:GetChildren()) do
+		if v:GetAttribute("isTutorial") == true then
+			self:onServerEvent(player, v:GetAttribute("questId"))
+		end
+	end
+end
+
+-- tutorial
+function questManager:OnCharacterAdded(player, playerId, questTutorial)
+	for _, quest in pairs(self.questData) do
+		if quest.questId == "1" then
+			return
+		end
+	end
+
+	local questLevel = player:WaitForChild("Quests"):GetAttribute("QuestLevel")
+
+	-- get the first index in the QuestTutorial and pass it to the questData,new
+	local questData = QuestData.new()
+	questData.questId = "1"
+	questData.questSource = questTutorial[questLevel].Name
+	questData.questName = questTutorial[questLevel].questName
+	questData.questCriteria = questTutorial[questLevel].questCriteria
+	questData.questType = questTutorial[questLevel].questType
+	questData.questObjective = questTutorial[questLevel].questObjective
+	questData.questTarget = questTutorial[questLevel].questTarget
+	questData.progress = 0
+	questData.completed = questTutorial[questLevel].completed
+	questData.claimed = false
+	questData.questrepeat = questTutorial[questLevel].questrepeat
+	questData.reward1 = questTutorial[questLevel].reward1
+	questData.reward2 = questTutorial[questLevel].reward2
+	questData.reward3 = questTutorial[questLevel].reward3
+	questData.isTutorial = questTutorial[questLevel].isTutorial
+
+	for _, npc in ipairs(game:GetService("Workspace"):FindFirstChild("NPC"):GetChildren()) do
+		if npc:IsA("Model") and npc:GetAttribute("Name") == questData.questSource then
+			npc:SetAttribute("QuestAccepted", true)
+		end
+
+		if questData.questTarget == npc:GetAttribute("Name") then
+			game:GetService("CollectionService"):AddTag(npc, questData.questType )
+		end
+	end
+
+	if playerQuests[playerId] == nil then
+		playerQuests[playerId] = {} -- Initialize as an empty table if it's nil
+	end
+
+	table.insert(playerQuests[playerId], questData)-- Insert the new quest into the existing table
+
+	local player = game.Players:GetPlayerByUserId(playerId)
+
+	self:CreateGUI(playerId, questData)
+	self:SetActiveQuest(playerId)
+
+	-- Save
+	PlayerManager.SetQuestData(player, questData)
+
+	-- notifQuest:FireClient(player, "New Quest!")
+end
+
 function questManager:CreateQuestForPlayer(player, playerId, questattribute)
 	local questData = QuestData.new()
 	questData.questId = GenerateUniqueId()
@@ -92,10 +156,15 @@ function questManager:CreateQuestForPlayer(player, playerId, questattribute)
 	questData.reward1 = questattribute["reward1"]
 	questData.reward2 = questattribute["reward2"]
 	questData.reward3 = questattribute["reward3"]
+	questData.isTutorial = questattribute["isTutorial"]
 
 	for _, npc in ipairs(game:GetService("Workspace"):FindFirstChild("NPC"):GetChildren()) do
 		if npc:IsA("Model") and npc:GetAttribute("Name") == questattribute["Name"] then
 			npc:SetAttribute("QuestAccepted", true)
+		end
+
+		if questData["questTarget"] == npc:GetAttribute("Name") then
+			game:GetService("CollectionService"):AddTag(npc, questattribute["questType"] )
 		end
 	end
 
@@ -178,7 +247,7 @@ function questManager:UpdateQuestGUI(playerId, questId, progress, questObjective
 	local playerGui = player.PlayerGui:WaitForChild("QuestSystem").MainFrame.Contents
 
 	for _, v in ipairs(playerGui:GetDescendants()) do
-		if v.Name == questId then
+		if questId == v.Name  then
 			local questHolderClone = v
 
 			local questData = {
@@ -199,6 +268,30 @@ function questManager:UpdateQuestGUI(playerId, questId, progress, questObjective
 		end
 	end
 end
+-- Function to batch update GUI elements for a quest
+function questManager:BatchUpdateQuestGUI(questHolderClone, questData)
+	local questObjectiveLabel = questHolderClone:WaitForChild("ProgressBarFrame").ProgressBG.ProgressValue
+	local questObjectiveBar = questHolderClone:WaitForChild("ProgressBarFrame").ProgressBG.ProgressFG
+	local questClaimFrame = questHolderClone:WaitForChild("Template").ClaimFrame
+	local questMainClaim = questHolderClone:WaitForChild("Template").MainQuestClaim
+	-- Perform batch GUI updates
+	questObjectiveLabel.Text = questData.Progress
+	questObjectiveBar.Size = UDim2.new(questData.ProgressRatio, 0, 1, 0)
+	--questClaimFrame.Visible = questData.QuestStatus
+	self:UpdateActiveQuest(questData.PlayerID, questData.QuestID, questData)
+	if questData.QuestStatus == true then
+		if questData.QuestCriteria == "MainQuest" then
+			local claim = questMainClaim:Clone()
+			claim.Parent =  questHolderClone:WaitForChild("ProgressBarFrame")
+			claim.NPCname.Text = "Talk to " .. questData.QuestSource 
+			claim.Visible = true
+		else
+			local claim = questClaimFrame:Clone()
+			claim.Parent =  questHolderClone:WaitForChild("ProgressBarFrame")
+			claim.Visible = true
+		end
+	end
+end
 
 -- Function to update the ActiveQuest GUI
 function questManager:UpdateActiveQuest(playerId, questId, questData)
@@ -215,32 +308,6 @@ function questManager:UpdateActiveQuest(playerId, questId, questData)
 			iconCheck.Visible = true
 		else
 			iconCheck.Visible = false
-		end
-	end
-end
-
--- Function to batch update GUI elements for a quest
-function questManager:BatchUpdateQuestGUI(questHolderClone, questData)
-	local questObjectiveLabel = questHolderClone:WaitForChild("ProgressBarFrame").ProgressBG.ProgressValue
-	local questObjectiveBar = questHolderClone:WaitForChild("ProgressBarFrame").ProgressBG.ProgressFG
-	local questClaimFrame = questHolderClone:WaitForChild("Template").ClaimFrame
-	local questMainClaim = questHolderClone:WaitForChild("Template").MainQuestClaim
-
-	-- Perform batch GUI updates
-	questObjectiveLabel.Text = questData.Progress
-	questObjectiveBar.Size = UDim2.new(questData.ProgressRatio, 0, 1, 0)
-	--questClaimFrame.Visible = questData.QuestStatus
-	self:UpdateActiveQuest(questData.PlayerID, questData.QuestID, questData)
-	if questData.QuestStatus == true then
-		if questData.QuestCriteria == "MainQuest" then
-			local claim = questMainClaim:Clone()
-			claim.Parent =  questHolderClone:WaitForChild("ProgressBarFrame")
-			claim.NPCname.Text = "Talk to " .. questData.QuestSource 
-			claim.Visible = true
-		else
-			local claim = questClaimFrame:Clone()
-			claim.Parent =  questHolderClone:WaitForChild("ProgressBarFrame")
-			claim.Visible = true
 		end
 	end
 end
@@ -411,7 +478,7 @@ function questManager:DeleteQuestGUI(player, questId)
 	end
 end
 
--- Function to update progress for KILL_MOBS quests
+
 function questManager:UpdateQuestProgress(player, playerId, questId, progress, questType, targetName) -- arguments has value
 	for _, questData in ipairs(playerQuests[playerId]) do
 		if questData.questId == questId and player == self.Player and questData.completed ~= true then
@@ -424,7 +491,7 @@ function questManager:UpdateQuestProgress(player, playerId, questId, progress, q
 end
 
 function questManager:onServerEvent(player, questId, guardianName) 
-	print(questId)
+
 	self:DeletePlayerLeaderstats(player.UserId, questId)
 	local guardianBindableEvent = game:GetService("ReplicatedStorage"):WaitForChild("Signals"):WaitForChild("GuardianBindableEvent")
 	local QuestFolder = player:FindFirstChild("Quests")
@@ -447,6 +514,11 @@ function questManager:onServerEvent(player, questId, guardianName)
 			if questData:GetAttribute("questCriteria") == "MainQuest" then
 				PlayerManager.SetQuestLevel(player, 1)
 				print("Next Quest")
+			end
+			
+			if questData:GetAttribute("questCriteria") == "TutorialQuest" then
+				PlayerManager.SetQuestLevel(player, 1)
+				print("Next Tutorial Quest Please!")
 			end
 
 			beamEnable:FireClient(player, questData:GetAttribute("questSource"), false, questData:GetAttribute("questCriteria"))
