@@ -34,6 +34,7 @@ questManager.__index = questManager
 
 -- lists
 local playerQuests = {}
+local dictionary = {}
 
 function questManager.new(player, playerId, questData)
 	local self = setmetatable({}, questManager)
@@ -87,17 +88,18 @@ end
 
 -- tutorial
 function questManager:OnCharacterAdded(player, playerId, questTutorial)
-	for _, quest in pairs(self.questData) do
-		if quest.questId == "1" then
-			return
-		end
-	end
-
+	local quest = player:WaitForChild("Quests")
 	local questLevel = player:WaitForChild("Quests"):GetAttribute("QuestLevel")
+	
+	for _, v in pairs(questTutorial) do
+		table.insert(dictionary, v)
+	end
+	
+	if questLevel >= #dictionary then return end
 
 	-- get the first index in the QuestTutorial and pass it to the questData,new
 	local questData = QuestData.new()
-	questData.questId = "1"
+	questData.questId = tostring(questTutorial[questLevel].questId + 1)
 	questData.questSource = questTutorial[questLevel].Name
 	questData.questName = questTutorial[questLevel].questName
 	questData.questCriteria = questTutorial[questLevel].questCriteria
@@ -126,7 +128,15 @@ function questManager:OnCharacterAdded(player, playerId, questTutorial)
 		playerQuests[playerId] = {} -- Initialize as an empty table if it's nil
 	end
 
-	table.insert(playerQuests[playerId], questData)-- Insert the new quest into the existing table
+	for _, v in ipairs(quest:GetChildren()) do
+		if v then
+			if v.Name == questData.questId then
+				return
+			end
+		end
+	end
+
+	table.insert(playerQuests[playerId], questData) -- Insert the new quest into the existing table
 
 	local player = game.Players:GetPlayerByUserId(playerId)
 
@@ -172,7 +182,6 @@ function questManager:CreateQuestForPlayer(player, playerId, questattribute)
 	end
 
 	table.insert(playerQuests[playerId], questData) -- Insert the new quest into the existing table
-
 
 	local player = game.Players:GetPlayerByUserId(playerId)
 
@@ -513,7 +522,7 @@ function questManager:onServerEvent(player, questId, guardianName)
 				PlayerManager.SetQuestLevel(player, 1)
 				print("Next Quest")
 			end
-			
+
 			if questData:GetAttribute("questCriteria") == "TutorialQuest" then
 				PlayerManager.SetQuestLevel(player, 1)
 				self:OnCharacterAdded(player, player.UserId, QuestTutorial)

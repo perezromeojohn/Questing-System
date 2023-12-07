@@ -3,7 +3,7 @@ local SSS = game:GetService("ServerScriptService")
 local RS = game:GetService("ReplicatedStorage")
 
 local QuestDictionary = require(script.QuestDictionary)
-local QuestTutorialDictionary = require(script.Parent.QuestInit.QuestTutorial)
+
 local QM = require(SSS.QuestSystem.QuestInit.QuestManager)
 local PM = require(game:GetService("ServerScriptService"):WaitForChild("PlayerManager"))
 
@@ -106,7 +106,7 @@ function QuestNpc:OnTriggered(plr)
 	if table.find(getTagged, self.QuestNPC) then
 		event:Fire(plr, playerId)
 		task.wait(0.1)
-		QuestDialogRemote:FireClient(plr, playerId, self.NPCName, self.QuestNPC:GetAttributes())
+		--QuestDialogRemote:FireClient(plr, playerId, self.NPCName, self.QuestNPC:GetAttributes())
 	else
 		QuestDialogRemote:FireClient(plr, playerId, self.NPCName, self.QuestNPC:GetAttributes())
 	end
@@ -127,6 +127,7 @@ function QuestNpc:SetQuestAttribute(plr)
 
 		if playerQuest > #count then
 			self:CleanUp()
+			return
 		end
 
 		local questData = QuestDictionary[self.Area][self.NPCName][playerQuest] --or QuestDictionary[self.Area][self.NPCName][#QuestDictionary[self.NPCName]]
@@ -137,23 +138,28 @@ function QuestNpc:SetQuestAttribute(plr)
 			end
 		end
 	elseif self.QuestType == "TutorialQuest" then
-		local data = QuestTutorialDictionary[self.NPCName]
+		local QuestTutorialDictionary = require(script.Parent.QuestInit.QuestTutorial)
+		if QuestDictionary then
+			local data = QuestTutorialDictionary
 
-		if not data then return end
-
-		for i,v in pairs(data) do
-			table.insert(count, v)
-		end
-
-		if playerQuest > #count then
-			self:CleanUp()
-		end
-
-		local questData = QuestDictionary[self.NPCName][playerQuest]
-
-		if questData then
+			if not data then return end
+		
+			for i,v in pairs(data) do
+				print(v)
+				table.insert(count, v)
+			end
+			
+			if playerQuest > #count then
+				self:CleanUp()
+				return
+			end
+			
+			local questData = QuestTutorialDictionary[playerQuest]
+			
 			for key, value in pairs(questData) do
-				self.QuestNPC:SetAttribute(key, value)
+				if data.Name == self.NPCName then
+					self.QuestNPC:SetAttribute(key, value)
+				end
 			end
 		end
 	else
