@@ -12,7 +12,6 @@ local questHolder = RS.QuestSystem.GUI.QuestHolder
 local PlayerManager = require(game:GetService("ServerScriptService"):WaitForChild("PlayerManager"))
 local QuestData = require(script.Parent.QuestData)
 local QuestTypes = require(script.Parent.QuestTypes)
-local QuestTutorial = require(script.Parent.QuestTutorial)
 
 -- remotes and stuff
 local claimQuest = RS.QuestSystem.Remotes.ClaimQuest
@@ -34,7 +33,6 @@ questManager.__index = questManager
 
 -- lists
 local playerQuests = {}
-local dictionary = {}
 
 function questManager.new(player, playerId, questData)
 	local self = setmetatable({}, questManager)
@@ -90,110 +88,120 @@ end
 function questManager:OnCharacterAdded(player, playerId, questTutorial)
 	local quest = player:WaitForChild("Quests")
 	local questLevel = player:WaitForChild("Quests"):GetAttribute("QuestLevel")
-	
-	for _, v in pairs(questTutorial) do
-		table.insert(dictionary, v)
-	end
-	
-	if questLevel >= #dictionary then return end
 
 	-- get the first index in the QuestTutorial and pass it to the questData,new
-	local questData = QuestData.new()
-	questData.questId = tostring(questTutorial[questLevel].questId + 1)
-	questData.questSource = questTutorial[questLevel].Name
-	questData.questName = questTutorial[questLevel].questName
-	questData.questCriteria = questTutorial[questLevel].questCriteria
-	questData.questType = questTutorial[questLevel].questType
-	questData.questObjective = questTutorial[questLevel].questObjective
-	questData.questTarget = questTutorial[questLevel].questTarget
-	questData.progress = 0
-	questData.completed = questTutorial[questLevel].completed
-	questData.claimed = false
-	questData.questrepeat = questTutorial[questLevel].questrepeat
-	questData.reward1 = questTutorial[questLevel].reward1
-	questData.reward2 = questTutorial[questLevel].reward2
-	questData.reward3 = questTutorial[questLevel].reward3
 
-	for _, npc in ipairs(game:GetService("Workspace"):FindFirstChild("NPC"):GetChildren()) do
-		if npc:IsA("Model") and npc:GetAttribute("Name") == questData.questSource then
-			npc:SetAttribute("QuestAccepted", true)
-		end
+	if questTutorial[questLevel] then
+		local questData = QuestData.new()
+		questData.questId = tostring(questTutorial[questLevel].questId + 1)
+		questData.questSource = questTutorial[questLevel].Name
+		questData.questName = questTutorial[questLevel].questName
+		questData.questCriteria = questTutorial[questLevel].questCriteria
+		questData.questType = questTutorial[questLevel].questType
+		questData.questObjective = questTutorial[questLevel].questObjective
+		questData.questTarget = questTutorial[questLevel].questTarget
+		questData.progress = 0
+		questData.completed = questTutorial[questLevel].completed
+		questData.claimed = false
+		questData.questrepeat = questTutorial[questLevel].questrepeat
+		questData.reward1 = questTutorial[questLevel].reward1
+		questData.reward2 = questTutorial[questLevel].reward2
+		questData.reward3 = questTutorial[questLevel].reward3
 
-		if questData.questTarget == npc:GetAttribute("Name") then
-			game:GetService("CollectionService"):AddTag(npc, questData.questType )
-		end
-	end
+		self:CheckDictionary(player, playerId, questTutorial)
 
-	if playerQuests[playerId] == nil then
-		playerQuests[playerId] = {} -- Initialize as an empty table if it's nil
-	end
+		for _, npc in ipairs(game:GetService("Workspace"):FindFirstChild("NPC"):GetChildren()) do
+			if npc:IsA("Model") and npc:GetAttribute("Name") == questData.questSource then
+				npc:SetAttribute("QuestAccepted", true)
+			end
 
-	for _, v in ipairs(quest:GetChildren()) do
-		if v then
-			if v.Name == questData.questId then
-				return
+			if questData.questTarget == npc:GetAttribute("Name") then
+				game:GetService("CollectionService"):AddTag(npc, questData.questType )
 			end
 		end
+
+		if playerQuests[playerId] == nil then
+			playerQuests[playerId] = {} -- Initialize as an empty table if it's nil
+		end
+
+		for _, v in ipairs(quest:GetChildren()) do
+			if v then
+				if v.Name == questData.questId then
+					return
+				end
+			end
+		end
+
+		table.insert(playerQuests[playerId], questData) -- Insert the new quest into the existing table
+
+		local player = game.Players:GetPlayerByUserId(playerId)
+
+		self:CreateGUI(playerId, questData)
+		self:SetActiveQuest(playerId)
+
+		-- Save
+		PlayerManager.SetQuestData(player, questData)
+
+		-- notifQuest:FireClient(player, "New Quest!")
+	end
+end
+
+function questManager:CheckDictionary(player, playerId, questTutorial)
+	local playerQuest = player:WaitForChild("Quests"):GetAttribute("QuestLevel")
+	if next(questTutorial) == nil then
+		return
 	end
 
-	table.insert(playerQuests[playerId], questData) -- Insert the new quest into the existing table
-
-	local player = game.Players:GetPlayerByUserId(playerId)
-
-	self:CreateGUI(playerId, questData)
-	self:SetActiveQuest(playerId)
-
-	-- Save
-	PlayerManager.SetQuestData(player, questData)
-
-	-- notifQuest:FireClient(player, "New Quest!")
+	questTutorial[playerQuest] = nil
 end
 
 function questManager:CreateQuestForPlayer(player, playerId, questattribute)
-	local questData = QuestData.new()
-	questData.questId = GenerateUniqueId()
-	questData.questSource = questattribute["Name"] -- Attribute name of the NPC
-	questData.questName = questattribute["questName"]
-	questData.questCriteria = questattribute["questCriteria"]
-	questData.questType = questattribute["questType"]
-	questData.questObjective = questattribute["questObjective"] 
-	questData.questTarget = questattribute["questTarget"]
-	questData.progress = 0
-	questData.completed = questattribute["completed"]
-	questData.claimed = false
-	questData.questrepeat = questattribute["questrepeat"]
-	questData.reward1 = questattribute["reward1"]
-	questData.reward2 = questattribute["reward2"]
-	questData.reward3 = questattribute["reward3"]
+	if questattribute then
+		local questData = QuestData.new()
+		questData.questId = GenerateUniqueId()
+		questData.questSource = questattribute["Name"] -- Attribute name of the NPC
+		questData.questName = questattribute["questName"]
+		questData.questCriteria = questattribute["questCriteria"]
+		questData.questType = questattribute["questType"]
+		questData.questObjective = questattribute["questObjective"] 
+		questData.questTarget = questattribute["questTarget"]
+		questData.progress = 0
+		questData.completed = questattribute["completed"]
+		questData.claimed = false
+		questData.questrepeat = questattribute["questrepeat"]
+		questData.reward1 = questattribute["reward1"]
+		questData.reward2 = questattribute["reward2"]
+		questData.reward3 = questattribute["reward3"]
 
-	for _, npc in ipairs(game:GetService("Workspace"):FindFirstChild("NPC"):GetChildren()) do
-		if npc:IsA("Model") and npc:GetAttribute("Name") == questattribute["Name"] then
-			npc:SetAttribute("QuestAccepted", true)
+		for _, npc in ipairs(game:GetService("Workspace"):FindFirstChild("NPC"):GetChildren()) do
+			if npc:IsA("Model") and npc:GetAttribute("Name") == questattribute["Name"] then
+				npc:SetAttribute("QuestAccepted", true)
+			end
+
+			if questData["questTarget"] == npc:GetAttribute("Name") then
+				game:GetService("CollectionService"):AddTag(npc, questattribute["questType"] )
+			end
 		end
 
-		if questData["questTarget"] == npc:GetAttribute("Name") then
-			game:GetService("CollectionService"):AddTag(npc, questattribute["questType"] )
+		-- Ensure playerQuests[playerId] is a table
+		if playerQuests[playerId] == nil then
+			playerQuests[playerId] = {} -- Initialize as an empty table if it's nil
 		end
+
+		table.insert(playerQuests[playerId], questData) -- Insert the new quest into the existing table
+
+		local player = game.Players:GetPlayerByUserId(playerId)
+
+		self:CreateGUI(playerId, questData)
+		self:SetActiveQuest(playerId)
+
+		-- Save
+		PlayerManager.SetQuestData(player, questData)
+
+		notifQuest:FireClient(player, "New Quest!")
+
+		return questData.questId
 	end
-
-	-- Ensure playerQuests[playerId] is a table
-	if playerQuests[playerId] == nil then
-		playerQuests[playerId] = {} -- Initialize as an empty table if it's nil
-	end
-
-	table.insert(playerQuests[playerId], questData) -- Insert the new quest into the existing table
-
-	local player = game.Players:GetPlayerByUserId(playerId)
-
-	self:CreateGUI(playerId, questData)
-	self:SetActiveQuest(playerId)
-
-	-- Save
-	PlayerManager.SetQuestData(player, questData)
-
-	notifQuest:FireClient(player, "New Quest!")
-
-	return questData.questId
 end
 
 -- Function to create the GUI for a player's quest
@@ -243,6 +251,11 @@ function questManager:CreateGUI(playerId, questData)
 
 		if questData.reward1 == nil and questData.reward2 == nil and questData.reward3 == nil then
 			warn("This quest has no reward!")
+		end
+
+		-- beams
+		if questData.questCriteria == "TutorialQuest" then
+			beamEnable:FireClient(player, questData.questSource, true, questData.questCriteria)
 		end
 	end
 end
@@ -517,17 +530,10 @@ function questManager:onServerEvent(player, questId, guardianName)
 				guardianBindableEvent:Fire(player, guardianName)
 			end
 
-			-- if questdata is MainQuest then print "Next Quest"
-			if questData:GetAttribute("questCriteria") == "MainQuest" then
-				PlayerManager.SetQuestLevel(player, 1)
-				print("Next Quest")
-			end
+			--New
+			if questData:GetAttribute("questCriteria") == "SideQuest" then return end
 
-			if questData:GetAttribute("questCriteria") == "TutorialQuest" then
-				PlayerManager.SetQuestLevel(player, 1)
-				self:OnCharacterAdded(player, player.UserId, QuestTutorial)
-				print("Next Tutorial Quest Please!")
-			end
+			PlayerManager.SetQuestLevel(player, 1)			
 
 			beamEnable:FireClient(player, questData:GetAttribute("questSource"), false, questData:GetAttribute("questCriteria"))
 		end
