@@ -45,7 +45,7 @@ function questManager.new(player, playerId, questData)
 
 	self.BindableEvent = event.Event:Connect(function(...)
 		self:UpdateQuestProgress(...)
-		self:TutorialChecker(...)
+	
 	end)
 
 	self.ServerEvent = claimQuest.OnServerEvent:Connect(function(...)
@@ -249,13 +249,14 @@ function questManager:CreateGUI(playerId, questData)
 			rewardHolderClone.Amount.Text = "Guardian" -- might change
 		end
 
-		if questData.reward1 == nil and questData.reward2 == nil and questData.reward3 == nil then
-			warn("This quest has no reward!")
-		end
-
 		-- beams
 		if questData.questCriteria == "TutorialQuest" then
-			beamEnable:FireClient(player, questData.questSource, true, questData.questCriteria)
+			print(player, questData.questSource, true, questData.questCriteria)
+			beamEnable:FireClient(player, questData.questTarget, true, questData.questCriteria)
+		end
+
+		if questData.reward1 == nil and questData.reward2 == nil and questData.reward3 == nil then
+			warn("This quest has no reward!")
 		end
 	end
 end
@@ -498,20 +499,19 @@ function questManager:DeleteQuestGUI(player, questId)
 	end
 end
 
-
 function questManager:UpdateQuestProgress(player, playerId, questId, progress, questType, targetName) -- arguments has value
 	for _, questData in ipairs(playerQuests[playerId]) do
 		if questData.questId == questId and player == self.Player and questData.completed ~= true then
 			if questData.questTarget == targetName then
 				questData.progress = questData.progress + progress
 				self:UpdatePlayerLeaderStats(playerId, questId)
+				self:TutorialChecker(player)
 			end
 		end
 	end
 end
 
 function questManager:onServerEvent(player, questId, guardianName) 
-
 	self:DeletePlayerLeaderstats(player.UserId, questId)
 	local guardianBindableEvent = game:GetService("ReplicatedStorage"):WaitForChild("Signals"):WaitForChild("GuardianBindableEvent")
 	local QuestFolder = player:FindFirstChild("Quests")
@@ -533,7 +533,8 @@ function questManager:onServerEvent(player, questId, guardianName)
 			--New
 			if questData:GetAttribute("questCriteria") == "SideQuest" then return end
 
-			PlayerManager.SetQuestLevel(player, 1)			
+			PlayerManager.SetQuestLevel(player, 1)
+			warn("hello")
 
 			beamEnable:FireClient(player, questData:GetAttribute("questSource"), false, questData:GetAttribute("questCriteria"))
 		end
