@@ -26,33 +26,36 @@ beamEnable.OnClientEvent:Connect(function(npcSource, enable, questCriteria)
 		if enable == true then
 			local npc = workspace.NPC:FindFirstChild(npcSource)
 			local beam = guideBeam:Clone()
-	
-			local npcHRP = npc:WaitForChild("HumanoidRootPart")
-	
+
+			local npcHRP = npc:FindFirstChild("HumanoidRootPart")
+			if not npcHRP then
+				return
+			end
+
 			local att1 = Instance.new("Attachment")
 			att1.Name = "Att1"
 			att1.Parent = playerHRP
-	
+
 			local att2 = Instance.new("Attachment")
 			att2.Name = "Att2"
 			att2.Parent = npcHRP
-	
+
 			beam.Parent = playerHRP
 			beam.Attachment0 = att1
 			beam.Attachment1 = att2
-	
+
 			beam.Enabled = true
 		else
 			local att1 = playerHRP:FindFirstChild("Att1")
 			local att2 = workspace.NPC:FindFirstChild(npcSource).HumanoidRootPart:FindFirstChild("Att2")
-	
+
 			local beam = playerHRP:FindFirstChild("GuidingBeam")
-	
+
 			if att1 == nil or att2 == nil or beam == nil then
 				warn("No attachments or beam found")
 				return
 			end
-	
+
 			att1:Destroy()
 			att2:Destroy()
 			beam:Destroy()
@@ -63,33 +66,36 @@ beamEnable.OnClientEvent:Connect(function(npcSource, enable, questCriteria)
 		if enable == true then
 			local npc = workspace.NPC:FindFirstChild(npcSource)
 			local beam = tutorialBeam:Clone()
-	
-			local npcHRP = npc:WaitForChild("HumanoidRootPart")
-	
+
+			local npcHRP = npc:FindFirstChild("HumanoidRootPart")
+			if not npcHRP then
+				return
+			end
+
 			local att1 = Instance.new("Attachment")
 			att1.Name = "Att1"
 			att1.Parent = playerHRP
-	
+
 			local att2 = Instance.new("Attachment")
 			att2.Name = "Att2"
 			att2.Parent = npcHRP
-	
+
 			beam.Parent = playerHRP
 			beam.Attachment0 = att1
 			beam.Attachment1 = att2
-	
+
 			beam.Enabled = true
 		else
 			local att1 = playerHRP:FindFirstChild("Att1")
 			local att2 = workspace.NPC:FindFirstChild(npcSource).HumanoidRootPart:FindFirstChild("Att2")
-	
+
 			local beam = playerHRP:FindFirstChild("TutorialBeam")
-	
+
 			if att1 == nil or att2 == nil or beam == nil then
 				warn("No attachments or beam found")
 				return
 			end
-	
+
 			att1:Destroy()
 			att2:Destroy()
 			beam:Destroy()
